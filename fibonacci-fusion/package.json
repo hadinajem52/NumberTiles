@@ -1,0 +1,31 @@
+{
+  "name": "fibonacci-fusion",
+  "version": "1.0.0",
+  "description": "A puzzle game based on merging Fibonacci numbers.",
+  "main": "src/App.js",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "react": "17.0.2",
+    "react-native": "0.64.2",
+    "react-navigation": "^4.4.4",
+    "react-native-gesture-handler": "^1.10.3",
+    "react-native-reanimated": "^2.2.0",
+    "react-native-screens": "^3.10.1"
+  },
+  "devDependencies": {
+    "babel-jest": "27.0.6",
+    "babel-preset-react-native": "4.0.1",
+    "eslint": "^7.32.0",
+    "jest": "27.0.6"
+  },
+  "jest": {
+    "preset": "react-native"
+  },
+  "license": "MIT"
+}
