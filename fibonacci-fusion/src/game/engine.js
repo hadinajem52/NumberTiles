@@ -11,6 +11,8 @@ const GRID_SIZE = 6; // Larger 6x6 grid
 const GOAL_TILE = 8192; // Higher goal tile value
 
 export class GameEngine {
+    static nextTileId = 1;
+    
     /**
      * Initialize a new game state
      * @param {string} mode - Game mode: 'classic', 'timeAttack', or 'challenge'
@@ -23,6 +25,7 @@ export class GameEngine {
         // Add initial tiles
         const initialState = {
             tiles,
+            tileList: [], // List of tile objects for animation tracking
             score: 0,
             moves: 0,
             gameOver: false,
@@ -43,7 +46,7 @@ export class GameEngine {
      * @returns {Object} Updated game state
      */
     static addRandomTile(state) {
-        const { tiles } = state;
+        const { tiles, tileList } = state;
         const emptyPositions = [];
         
         // Find all empty positions
@@ -73,12 +76,33 @@ export class GameEngine {
             )
         );
         
+        // Create a new tile object with unique ID for tracking animations
+        const newTile = {
+            id: GameEngine.nextTileId++,
+            value,
+            row,
+            col,
+            isNew: true,  // Mark as a new tile for appearance animation
+            mergedFrom: null,
+            delayAppearance: true // Add this flag to control the appearance timing
+        };
+        
+        // Clear isNew flag from any existing tiles to ensure they don't re-animate
+        const updatedTileList = tileList.map(tile => ({
+            ...tile,
+            isNew: false
+        }));
+        
+        // Add the new tile to the tile list
+        const newTileList = [...updatedTileList, newTile];
+        
         // Check if we've reached the goal
         const goalReached = this.hasReachedGoal(newTiles);
         
         return { 
             ...state,
             tiles: newTiles,
+            tileList: newTileList,
             goalReached: goalReached || state.goalReached
         };
     }
@@ -90,12 +114,21 @@ export class GameEngine {
      * @returns {Object} Updated game state
      */
     static move(state, direction) {
-        const { tiles, score } = state;
+        const { tiles, tileList, score } = state;
         let newScore = score;
         let moved = false;
         
+        // Save previous tile positions for animations
+        const previousPositions = tileList.map(tile => ({...tile}));
+        
         // Create a deep copy of the tiles
         const newTiles = JSON.parse(JSON.stringify(tiles));
+        
+        // Prepare a 2D array to track merges
+        const mergedTiles = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        
+        // Track which tiles have been processed in this move
+        const processedTiles = new Set();
         
         // Process the move based on direction
         if (direction === 'up' || direction === 'down') {
@@ -106,7 +139,7 @@ export class GameEngine {
                     column.push(newTiles[row][col]);
                 }
                 
-                const result = this.processLine(column, direction === 'up');
+                const result = this.processLine(column, direction === 'up', tileList, col, mergedTiles, processedTiles);
                 
                 if (result.moved) {
                     moved = true;
@@ -121,7 +154,7 @@ export class GameEngine {
         } else {
             // Process each row
             for (let row = 0; row < GRID_SIZE; row++) {
-                const result = this.processLine(newTiles[row], direction === 'left');
+                const result = this.processLine(newTiles[row], direction === 'left', tileList, row, mergedTiles, processedTiles, true);
                 
                 if (result.moved) {
                     moved = true;
@@ -136,12 +169,33 @@ export class GameEngine {
             return state;
         }
         
+        // Create updated tile list with new positions and merge information
+        const updatedTileList = [];
+        
+        // First add non-merged tiles with their new positions
+        for (const tile of tileList) {
+            if (!processedTiles.has(tile.id)) {
+                updatedTileList.push(tile);
+            }
+        }
+        
+        // Add merged tiles (with updated values)
+        for (let row = 0; row < GRID_SIZE; row++) {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                if (mergedTiles[row][col]) {
+                    updatedTileList.push(mergedTiles[row][col]);
+                }
+            }
+        }
+        
         // Add a new random tile and update the state
         const newState = {
             ...state,
             tiles: newTiles,
+            tileList: updatedTileList,
             score: newScore,
-            moves: state.moves + 1
+            moves: state.moves + 1,
+            previousPositions // Store previous positions for animations
         };
         
         // Check if goal has been reached
@@ -158,58 +212,109 @@ export class GameEngine {
      * Process a line (row or column) for movement and merging
      * @param {Array} line - Line of tiles to process
      * @param {boolean} forward - Direction (true = left/up, false = right/down)
+     * @param {Array} tileList - List of tile objects
+     * @param {number} lineIndex - The row or column index being processed
+     * @param {Array} mergedTiles - 2D array to track merged tiles
+     * @param {Set} processedTiles - Set of tile IDs that have been processed
+     * @param {boolean} isRow - Whether processing a row (true) or column (false)
      * @returns {Object} Processed line, whether it moved, and score gain
      */
-    static processLine(line, forward) {
+    static processLine(line, forward, tileList, lineIndex, mergedTiles, processedTiles, isRow = false) {
         // Create a copy of the line to process
         const originalLine = [...line];
         
-        // Remove zeros and compact the line
-        let nonZeros = line.filter(cell => cell !== 0);
-        let newLine = Array(GRID_SIZE).fill(0);
-        let scoreGain = 0;
-        let merged = []; // Track which tiles have been merged in this move
+        // Step 1: Extract non-zero values
+        const values = line.filter(val => val !== 0);
+        if (!forward) values.reverse();
         
+        // Step 2: Process merges on the values
+        const processed = [];
+        let scoreGain = 0;
+        let i = 0;
+        
+        while (i < values.length) {
+            // If this value matches the next and we can merge them
+            if (i < values.length - 1 && values[i] === values[i+1]) {
+                // Merge - double the value
+                const mergedValue = values[i] * 2;
+                processed.push(mergedValue);
+                scoreGain += mergedValue;
+                i += 2; // Skip the next value since it's merged
+            } else {
+                // Just add the value
+                processed.push(values[i]);
+                i++;
+            }
+        }
+        
+        // Step 3: Create the new line with merged values
+        let newLine = Array(GRID_SIZE).fill(0);
+        for (let i = 0; i < processed.length; i++) {
+            const index = forward ? i : GRID_SIZE - 1 - i;
+            newLine[index] = processed[i];
+        }
+        
+        // Step 4: Update tile positions and handle merges
+        // Get tiles in this line
+        const tilesInLine = tileList.filter(tile => 
+            isRow ? tile.row === lineIndex : tile.col === lineIndex
+        ).filter(tile => tile.value > 0);
+        
+        // Sort tiles based on position
         if (forward) {
-            // Process from left to right (or top to bottom)
-            let outputIndex = 0;
-            for (let i = 0; i < nonZeros.length; i++) {
-                // If this value matches the next one and hasn't been merged yet
-                if (i < nonZeros.length - 1 && nonZeros[i] === nonZeros[i+1] && !merged.includes(i)) {
-                    // Merge - double the value
-                    const doubledValue = nonZeros[i] * 2;
-                    newLine[outputIndex] = doubledValue;
-                    scoreGain += doubledValue; // Score from this merge
-                    merged.push(i+1); // Mark the next index as merged
-                    outputIndex++;
-                    i++; // Skip the next tile since it's merged
-                } else if (!merged.includes(i)) {
-                    // Just move
-                    newLine[outputIndex] = nonZeros[i];
-                    outputIndex++;
-                }
-            }
+            tilesInLine.sort((a, b) => (isRow ? a.col - b.col : a.row - b.row));
         } else {
-            // Process from right to left (or bottom to top)
-            nonZeros = nonZeros.reverse();
-            let outputIndex = GRID_SIZE - 1;
+            tilesInLine.sort((a, b) => (isRow ? b.col - a.col : b.row - a.row));
+        }
+        
+        // Track which tiles need to be merged
+        const tilesToMerge = [];
+        let outputIndex = forward ? 0 : GRID_SIZE - 1;
+        const indexChange = forward ? 1 : -1;
+        
+        // Loop through the original tiles and update their positions
+        for (let i = 0; i < tilesInLine.length; i++) {
+            if (processedTiles.has(tilesInLine[i].id)) continue;
             
-            for (let i = 0; i < nonZeros.length; i++) {
-                // If this value matches the next one and hasn't been merged yet
-                if (i < nonZeros.length - 1 && nonZeros[i] === nonZeros[i+1] && !merged.includes(i)) {
-                    // Merge - double the value
-                    const doubledValue = nonZeros[i] * 2;
-                    newLine[outputIndex] = doubledValue;
-                    scoreGain += doubledValue; // Score from this merge
-                    merged.push(i+1); // Mark the next index as merged
-                    outputIndex--;
-                    i++; // Skip the next tile since it's merged
-                } else if (!merged.includes(i)) {
-                    // Just move
-                    newLine[outputIndex] = nonZeros[i];
-                    outputIndex--;
+            const tile = tilesInLine[i];
+            
+            // Check if this tile is going to merge with the next one
+            if (i < tilesInLine.length - 1 && 
+                tile.value === tilesInLine[i+1].value &&
+                !processedTiles.has(tilesInLine[i+1].id)) {
+                
+                // Create a merged tile
+                const mergedValue = tile.value * 2;
+                const mergedTileRow = isRow ? lineIndex : outputIndex;
+                const mergedTileCol = isRow ? outputIndex : lineIndex;
+                
+                const mergedTile = {
+                    id: GameEngine.nextTileId++,
+                    value: mergedValue,
+                    row: mergedTileRow,
+                    col: mergedTileCol,
+                    mergedFrom: [tile.id, tilesInLine[i+1].id]
+                };
+                
+                // Add to merged tiles array
+                mergedTiles[mergedTileRow][mergedTileCol] = mergedTile;
+                
+                // Mark both tiles as processed
+                processedTiles.add(tile.id);
+                processedTiles.add(tilesInLine[i+1].id);
+                
+                // Skip the next tile
+                i++;
+            } else {
+                // Just update this tile's position
+                if (isRow) {
+                    tile.col = outputIndex;
+                } else {
+                    tile.row = outputIndex;
                 }
             }
+            
+            outputIndex += indexChange;
         }
         
         // Check if the line has changed

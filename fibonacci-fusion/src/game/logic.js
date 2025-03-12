@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GameEngine } from './engine';
 import { canMergeNumbers, getNextPowerOfTwo } from '../utils/fibonacci';
+import config from '../config';
 
 class Logic {
     constructor(board) {
@@ -67,6 +68,36 @@ class Logic {
         return false;
     }
 
+    // Add method to check if a specific tile can be merged with adjacent tiles
+    canTileMerge(tiles, tileId, tileList) {
+        const tile = tileList.find(t => t.id === tileId);
+        if (!tile || tile.value === 0) return false;
+        
+        const { row, col, value } = tile;
+        
+        // Check adjacent cells
+        const directions = [
+            { row: -1, col: 0 }, // up
+            { row: 1, col: 0 },  // down
+            { row: 0, col: -1 }, // left
+            { row: 0, col: 1 }   // right
+        ];
+        
+        for (const dir of directions) {
+            const newRow = row + dir.row;
+            const newCol = col + dir.col;
+            
+            if (this.isInBounds(newRow, newCol)) {
+                const adjacentTile = tileList.find(t => t.row === newRow && t.col === newCol);
+                if (adjacentTile && adjacentTile.value === value) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
     isInBounds(x, y) {
         return x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize;
     }
@@ -83,12 +114,17 @@ export default Logic;
 export const useGameLogic = (initialState, setGameState) => {
     // Create a timer for Time Attack mode
     const [timer, setTimer] = useState(null);
+    const [animating, setAnimating] = useState(false);
+    const [animationDuration, setAnimationDuration] = useState(config.animations?.tile?.moveSpeed || 150);
 
     /**
      * Handle directional swipe/key action
      * @param {string} direction - Direction: 'up', 'down', 'left', 'right'
      */
     const handleSwipe = useCallback((direction) => {
+        // Don't process input during animations or when game is over
+        if (animating) return;
+        
         setGameState(currentState => {
             // Don't allow moves if game is over
             if (currentState.gameOver) {
@@ -97,6 +133,19 @@ export const useGameLogic = (initialState, setGameState) => {
 
             // Process the move
             const newState = GameEngine.move(currentState, direction);
+            
+            // If no change, return current state
+            if (currentState.score === newState.score && 
+                currentState.moves === newState.moves) {
+                return currentState;
+            }
+            
+            // Set animating flag to prevent rapid moves during animations
+            setAnimating(true);
+            
+            // Clear animation flag after move animations have completed
+            // Add extra time for the new tile appearance animation
+            setTimeout(() => setAnimating(false), animationDuration + 100);
             
             // For Challenge mode, check if target is reached
             if (newState.mode === 'challenge' && hasReachedTarget(newState)) {
@@ -126,7 +175,7 @@ export const useGameLogic = (initialState, setGameState) => {
             
             return newState;
         });
-    }, [setGameState]);
+    }, [setGameState, animating, animationDuration]);
     
     /**
      * Check if target Fibonacci number has been reached (Challenge Mode)
@@ -137,8 +186,8 @@ export const useGameLogic = (initialState, setGameState) => {
         if (!state.targetNumber) return false;
         
         // Check all tiles for target number
-        for (let row = 0; row < 4; row++) {
-            for (let col = 0; col < 4; col++) {
+        for (let row = 0; row < state.gridSize; row++) {
+            for (let col = 0; col < state.gridSize; col++) {
                 if (state.tiles[row][col] >= state.targetNumber) {
                     return true;
                 }
@@ -218,6 +267,15 @@ export const useGameLogic = (initialState, setGameState) => {
         }
     }, [initialState.mode, initialState.gameOver, initialState.timeLeft, timer, setGameState]);
     
+    /**
+     * Load animation settings from config
+     */
+    useEffect(() => {
+        if (config.animations?.tile?.moveSpeed) {
+            setAnimationDuration(config.animations.tile.moveSpeed);
+        }
+    }, []);
+    
     // Get game mode specific UI helper data
     const getModeInfo = useCallback((state) => {
         switch (state.mode) {
@@ -257,6 +315,7 @@ export const useGameLogic = (initialState, setGameState) => {
         resetGame,
         isGameOver,
         getModeInfo,
-        hasReachedTarget
+        hasReachedTarget,
+        isAnimating: animating
     };
 };

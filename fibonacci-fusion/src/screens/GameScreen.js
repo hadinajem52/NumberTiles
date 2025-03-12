@@ -24,8 +24,6 @@ const GameScreen = ({ navigation, route }) => {
         }
     }, [gameState, isGameOver, resetGame, navigation]);
 
-    // Removed keyboard event handling code since this is Android only
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -33,7 +31,12 @@ const GameScreen = ({ navigation, route }) => {
                 <ScoreBoard score={gameState.score} />
             </View>
             
-            <Board tiles={gameState.tiles} onSwipe={handleSwipe} />
+            <Board 
+                tiles={gameState.tiles} 
+                tileList={gameState.tileList}
+                previousPositions={gameState.previousPositions}
+                onSwipe={handleSwipe} 
+            />
             
             <View style={styles.controls}>
                 <TouchableOpacity 

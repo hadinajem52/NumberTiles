@@ -1,24 +1,85 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 
-const Tile = ({ value, position }) => {
+// Get the screen width for calculations
+const { width } = Dimensions.get('window');
+const BOARD_SIZE = Math.min(width - 24, 450);
+const GRID_SIZE = 6;
+const CELL_SIZE = (BOARD_SIZE - 12) / GRID_SIZE;
+const CELL_PADDING = 3;
+const TILE_SIZE = CELL_SIZE - (CELL_PADDING * 2);
+
+const Tile = ({ tile, previousPosition }) => {
     // Ensure value is valid to prevent errors
-    const tileValue = value || 0;
-    const animatedValue = useRef(new Animated.Value(0)).current;
+    const tileValue = tile.value || 0;
+    const isFirstRender = useRef(true);
     
-    // Animation effect when tile appears
+    // Animation values
+    const animatedValue = useRef(new Animated.Value(tile.isNew ? 0 : 1)).current;
+    const animatedX = useRef(new Animated.Value(tile.col * CELL_SIZE)).current;
+    const animatedY = useRef(new Animated.Value(tile.row * CELL_SIZE)).current;
+    
+    // Handle animations when tile properties change
     useEffect(() => {
-        try {
-            Animated.spring(animatedValue, {
-                toValue: 1,
-                friction: 5,
-                tension: 100,
-                useNativeDriver: true,
-            }).start();
-        } catch (error) {
-            console.error("Animation error:", error);
+        // Only animate position if this isn't the first render and there's a previous position
+        if (!isFirstRender.current && previousPosition) {
+            if (previousPosition.row !== tile.row || previousPosition.col !== tile.col) {
+                // First set to previous position without animation (if moving from a previous position)
+                animatedX.setValue(previousPosition.col * CELL_SIZE);
+                animatedY.setValue(previousPosition.row * CELL_SIZE);
+                
+                // Then animate to new position
+                Animated.timing(animatedX, {
+                    toValue: tile.col * CELL_SIZE,
+                    duration: 150,
+                    useNativeDriver: true,
+                }).start();
+                
+                Animated.timing(animatedY, {
+                    toValue: tile.row * CELL_SIZE,
+                    duration: 150,
+                    useNativeDriver: true,
+                }).start();
+            }
+        } else {
+            // For first render, just set the position without animation
+            animatedX.setValue(tile.col * CELL_SIZE);
+            animatedY.setValue(tile.row * CELL_SIZE);
+            isFirstRender.current = false;
         }
-    }, []);
+        
+        // Handle appearance animations
+        const animations = [];
+        
+        // New tile appearance animation
+        if (tile.isNew) {
+            // Delay the appearance animation slightly to prevent glitches
+            setTimeout(() => {
+                Animated.spring(animatedValue, {
+                    toValue: 1,
+                    friction: 5,
+                    tension: 100,
+                    useNativeDriver: true,
+                }).start();
+            }, 50);
+        }
+        
+        // Merge animation (for merged tiles)
+        if (tile.mergedFrom) {
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1.2,
+                    duration: 100,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 100,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        }
+    }, [tile, previousPosition]);
     
     // Get appropriate background color based on tile value (2048 colors)
     const getBackgroundColor = () => {
@@ -44,27 +105,16 @@ const Tile = ({ value, position }) => {
     
     // Get text color (white for darker tiles, dark for lighter tiles)
     const getTextColor = () => {
-        try {
-            const darkBackgrounds = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384];
-            return tileValue >= 8 ? '#ffffff' : '#776e65';
-        } catch (error) {
-            console.error("Text color error:", error);
-            return '#776e65'; // Default text color on error
-        }
+        return tileValue >= 8 ? '#ffffff' : '#776e65';
     };
     
     // Adjust font size based on value length
     const getFontSize = () => {
-        try {
-            if (tileValue >= 10000) return 18;
-            if (tileValue >= 1000) return 20;
-            if (tileValue >= 100) return 24;
-            if (tileValue >= 10) return 28;
-            return 32;
-        } catch (error) {
-            console.error("Font size error:", error);
-            return 24; // Default size on error
-        }
+        if (tileValue >= 10000) return 18;
+        if (tileValue >= 1000) return 20;
+        if (tileValue >= 100) return 24;
+        if (tileValue >= 10) return 28;
+        return 32;
     };
 
     return (
@@ -73,7 +123,11 @@ const Tile = ({ value, position }) => {
                 styles.tile,
                 { 
                     backgroundColor: getBackgroundColor(),
-                    transform: [{ scale: animatedValue }]
+                    transform: [
+                        { translateX: animatedX },
+                        { translateY: animatedY },
+                        { scale: animatedValue }
+                    ]
                 }
             ]}
         >
@@ -93,8 +147,8 @@ const Tile = ({ value, position }) => {
 const styles = StyleSheet.create({
     tile: {
         position: 'absolute',
-        width: '100%',
-        height: '100%',
+        width: TILE_SIZE,
+        height: TILE_SIZE,
         borderRadius: 4,
         justifyContent: 'center',
         alignItems: 'center',

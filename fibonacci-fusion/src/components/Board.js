@@ -8,7 +8,7 @@ const BOARD_SIZE = Math.min(width - 24, 450); // Max size of 450, with less padd
 const SWIPE_THRESHOLD = 50; // Minimum distance to recognize as swipe
 const GRID_SIZE = 6; // Updated grid size to 6x6
 
-const Board = ({ tiles, onSwipe }) => {
+const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
     // Touch handling state
     const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
     
@@ -39,8 +39,8 @@ const Board = ({ tiles, onSwipe }) => {
         })
     ).current;
 
-    // Render the 6x6 grid of tiles
-    const renderGrid = () => {
+    // Render the 6x6 grid background
+    const renderGridBackground = () => {
         const rows = [];
         
         for (let row = 0; row < GRID_SIZE; row++) {
@@ -48,25 +48,37 @@ const Board = ({ tiles, onSwipe }) => {
             
             for (let col = 0; col < GRID_SIZE; col++) {
                 cols.push(
-                    <View key={`cell-${row}-${col}`} style={styles.cell}>
-                        {tiles[row][col] > 0 && (
-                            <Tile 
-                                value={tiles[row][col]} 
-                                position={{ row, col }}
-                            />
-                        )}
-                    </View>
+                    <View key={`bg-cell-${row}-${col}`} style={styles.backgroundCell} />
                 );
             }
             
             rows.push(
-                <View key={`row-${row}`} style={styles.row}>
+                <View key={`bg-row-${row}`} style={styles.row}>
                     {cols}
                 </View>
             );
         }
         
         return rows;
+    };
+    
+    // Render tiles with animations
+    const renderTiles = () => {
+        if (!tileList) return null;
+        
+        return tileList.map(tile => {
+            // Find previous position for animation
+            const previousPosition = previousPositions ? 
+                previousPositions.find(prev => prev.id === tile.id) : null;
+                
+            return (
+                <Tile 
+                    key={`tile-${tile.id}`}
+                    tile={tile}
+                    previousPosition={previousPosition}
+                />
+            );
+        });
     };
 
     return (
@@ -75,18 +87,11 @@ const Board = ({ tiles, onSwipe }) => {
             {...panResponder.panHandlers}
         >
             <View style={styles.background}>
-                {/* Background grid cells */}
-                {[...Array(GRID_SIZE)].map((_, row) => (
-                    <View key={`bg-row-${row}`} style={styles.row}>
-                        {[...Array(GRID_SIZE)].map((_, col) => (
-                            <View key={`bg-cell-${row}-${col}`} style={styles.backgroundCell} />
-                        ))}
-                    </View>
-                ))}
+                {renderGridBackground()}
             </View>
             
             <View style={styles.tilesContainer}>
-                {renderGrid()}
+                {renderTiles()}
             </View>
         </View>
     );
@@ -109,21 +114,15 @@ const styles = StyleSheet.create({
         bottom: 6,
     },
     tilesContainer: {
-        width: '100%',
-        height: '100%',
         position: 'absolute',
         top: 6,
         left: 6,
+        right: 6,
+        bottom: 6,
     },
     row: {
         flexDirection: 'row',
         height: `${100/GRID_SIZE}%`, // Evenly divided rows based on grid size
-    },
-    cell: {
-        width: `${100/GRID_SIZE}%`, // Evenly divided columns based on grid size
-        height: '100%',
-        padding: 3, // Smaller padding for larger grid
-        position: 'relative',
     },
     backgroundCell: {
         flex: 1,

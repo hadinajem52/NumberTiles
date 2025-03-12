@@ -1,10 +1,13 @@
 const config = {
     initialBoardState: [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
     ],
+    gridSize: 6,
     availablePowerUps: [
         {
             name: "Double Merge",
@@ -18,6 +21,13 @@ const config = {
         },
     ],
     maxScore: 10000,
+    animations: {
+        tile: {
+            moveSpeed: 150, // ms
+            appearSpeed: 200, // ms
+            mergeSpeed: 200 // ms
+        }
+    }
 };
 
 export default config;
