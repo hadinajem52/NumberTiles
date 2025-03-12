@@ -1,6 +1,6 @@
-# Fibonacci Fusion
+# 2048 Expansion - 6x6 Grid Edition
 
-Fibonacci Fusion is an engaging puzzle game that challenges players to merge Fibonacci numbers in a fun and interactive way. The game combines strategy and quick thinking, making it suitable for players of all ages.
+A challenging puzzle game based on the classic 2048, but with a larger 6x6 grid and an extended goal of 8192. This expansion makes the game more strategic and provides a longer-lasting challenge.
 
 ## Table of Contents
 
@@ -12,15 +12,15 @@ Fibonacci Fusion is an engaging puzzle game that challenges players to merge Fib
 
 ## Installation
 
-To get started with Fibonacci Fusion, follow these steps:
+To get started with 2048 Expansion, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/fibonacci-fusion.git
+   git clone https://github.com/yourusername/2048-expansion.git
    ```
 2. Navigate to the project directory:
    ```
-   cd fibonacci-fusion
+   cd 2048-expansion
    ```
 3. Install the dependencies:
    ```
@@ -33,24 +33,27 @@ To get started with Fibonacci Fusion, follow these steps:
 
 ## Gameplay
 
-In Fibonacci Fusion, players are presented with a grid filled with tiles that contain Fibonacci numbers. The objective is to merge tiles with the same number to create higher Fibonacci numbers. The game ends when there are no valid moves left.
+In this 2048 expansion, players merge identical number tiles on a 6x6 grid. Each time two tiles with the same number touch, they merge into one tile with double the value. The goal is to create a tile with a value of 8192 or higher!
 
 ### Controls
 
-- Swipe to move tiles in the desired direction.
-- Tap buttons for in-game actions such as undoing a move or accessing settings.
+- Swipe or use arrow keys to move all tiles in the desired direction.
+- After each move, a new tile (2 or 4) will appear in a random empty cell.
+- Continue merging tiles to create larger numbers.
+- The game ends when the board is full and no more moves are possible.
 
 ## Features
 
-- Intuitive gameplay based on Fibonacci numbers.
-- Beautifully designed user interface.
-- Sound effects and background music to enhance the gaming experience.
-- Leaderboard to track high scores and player rankings.
-- Customizable settings for sound and music preferences.
+- 6x6 grid for more strategic gameplay
+- Extended goal of 8192
+- Beautiful tile animations
+- Score tracking with high score saving
+- Multiple game modes: Classic, Time Attack, and Challenge
+- Milestone achievements to unlock
 
 ## Contributing
 
-We welcome contributions to Fibonacci Fusion! If you have suggestions or improvements, please fork the repository and submit a pull request.
+We welcome contributions to 2048 Expansion! If you have suggestions or improvements, please fork the repository and submit a pull request.
 
 ## License
 

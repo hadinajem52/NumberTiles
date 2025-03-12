@@ -1,14 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import { Button } from '../components/Button';
-import { theme } from '../assets/styles/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Button from '../components/Button';
+import theme from '../assets/styles/theme';
+import { useNavigation } from '@react-navigation/native';
 
 const SettingsScreen = () => {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [musicEnabled, setMusicEnabled] = useState(true);
+    const navigation = useNavigation();
 
-    const toggleSound = () => setSoundEnabled(previousState => !previousState);
-    const toggleMusic = () => setMusicEnabled(previousState => !previousState);
+    // Load settings when component mounts
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const savedSound = await AsyncStorage.getItem('sound_enabled');
+                const savedMusic = await AsyncStorage.getItem('music_enabled');
+                
+                if (savedSound !== null) {
+                    setSoundEnabled(savedSound === 'true');
+                }
+                
+                if (savedMusic !== null) {
+                    setMusicEnabled(savedMusic === 'true');
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        };
+        
+        loadSettings();
+    }, []);
+
+    const toggleSound = async (value) => {
+        setSoundEnabled(value);
+        try {
+            await AsyncStorage.setItem('sound_enabled', value.toString());
+            // Here you would also trigger an action to enable/disable sound
+            // For example: SoundManager.enableSoundEffects(value);
+        } catch (error) {
+            console.error('Failed to save sound setting:', error);
+        }
+    };
+
+    const toggleMusic = async (value) => {
+        setMusicEnabled(value);
+        try {
+            await AsyncStorage.setItem('music_enabled', value.toString());
+            // Here you would also trigger an action to enable/disable music
+            // For example: MusicManager.enableBackgroundMusic(value);
+        } catch (error) {
+            console.error('Failed to save music setting:', error);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -27,7 +71,7 @@ const SettingsScreen = () => {
                     onValueChange={toggleMusic}
                 />
             </View>
-            <Button title="Back to Home" onPress={() => {/* Navigate back to Home */}} />
+            <Button title="Back to Home" onPress={() => navigation.navigate('Home')} />
         </View>
     );
 };
@@ -37,12 +81,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.backgroundColor,
+        backgroundColor: theme.colors.background,
     },
     title: {
         fontSize: 24,
         marginBottom: 20,
-        color: theme.primaryColor,
+        color: theme.colors.primary,
     },
     setting: {
         flexDirection: 'row',
@@ -53,7 +97,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 18,
-        color: theme.textColor,
+        color: theme.colors.text,
     },
 });
 
