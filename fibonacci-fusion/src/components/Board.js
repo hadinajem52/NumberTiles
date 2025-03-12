@@ -4,9 +4,12 @@ import Tile from './Tile';
 
 // Get the screen width to create a responsive but square board
 const { width } = Dimensions.get('window');
-const BOARD_SIZE = Math.min(width - 24, 450); // Max size of 450, with less padding for larger grid
+const BOARD_SIZE = Math.min(width - 24, 450); // Max size of 450
 const SWIPE_THRESHOLD = 50; // Minimum distance to recognize as swipe
-const GRID_SIZE = 6; // Updated grid size to 6x6
+const GRID_SIZE = 5; // 5x5 grid
+const CELL_SIZE = (BOARD_SIZE - 12) / GRID_SIZE;
+const CELL_MARGIN = 3;
+const CELL_INNER_SIZE = CELL_SIZE - (CELL_MARGIN * 2); // Exact size of cells
 
 const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
     // Touch handling state
@@ -39,7 +42,7 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
         })
     ).current;
 
-    // Render the 6x6 grid background
+    // Render the 5x5 grid background with precise positioning
     const renderGridBackground = () => {
         const rows = [];
         
@@ -48,7 +51,18 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
             
             for (let col = 0; col < GRID_SIZE; col++) {
                 cols.push(
-                    <View key={`bg-cell-${row}-${col}`} style={styles.backgroundCell} />
+                    <View 
+                        key={`bg-cell-${row}-${col}`} 
+                        style={[
+                            styles.backgroundCell,
+                            {
+                                width: CELL_INNER_SIZE,
+                                height: CELL_INNER_SIZE,
+                                marginHorizontal: CELL_MARGIN,
+                                marginVertical: CELL_MARGIN,
+                            }
+                        ]} 
+                    />
                 );
             }
             
@@ -122,12 +136,12 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        height: `${100/GRID_SIZE}%`, // Evenly divided rows based on grid size
+        height: CELL_SIZE, // Exact height instead of percentage
+        justifyContent: 'center',
     },
     backgroundCell: {
-        flex: 1,
-        margin: 3,
-        backgroundColor: 'rgba(238, 228, 218, 0.35)', // Light background for empty cells
+        // No flex, using exact sizes instead
+        backgroundColor: 'rgba(238, 228, 218, 0.35)', 
         borderRadius: 4,
     }
 });

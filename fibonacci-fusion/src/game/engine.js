@@ -7,19 +7,14 @@
 import { isPowerOfTwo, getNextPowerOfTwo, getRandomStartingValue } from '../utils/fibonacci';
 
 // Constants
-const GRID_SIZE = 6; // Larger 6x6 grid
+const GRID_SIZE = 5; // 5x5 grid
 const GOAL_TILE = 8192; // Higher goal tile value
 
 export class GameEngine {
     static nextTileId = 1;
     
-    /**
-     * Initialize a new game state
-     * @param {string} mode - Game mode: 'classic', 'timeAttack', or 'challenge'
-     * @returns {Object} Initial game state
-     */
     static initialize(mode = 'classic') {
-        // Create empty 6x6 grid
+        // Create empty 5x5 grid
         const tiles = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
         
         // Add initial tiles
@@ -30,7 +25,7 @@ export class GameEngine {
             moves: 0,
             gameOver: false,
             mode,
-            timeLeft: mode === 'timeAttack' ? 180 : null, // 3 minutes for time attack (longer for larger grid)
+            timeLeft: mode === 'timeAttack' ? 180 : null, // 3 minutes for time attack
             goalReached: false,
             gridSize: GRID_SIZE,
             goalValue: GOAL_TILE
@@ -39,13 +34,14 @@ export class GameEngine {
         // Add two initial tiles
         return GameEngine.addRandomTile(GameEngine.addRandomTile(initialState));
     }
-    
+
     /**
      * Add a random tile to the board (2 or 4)
      * @param {Object} state - Current game state
+     * @param {boolean} afterMove - Whether this is following a move animation
      * @returns {Object} Updated game state
      */
-    static addRandomTile(state) {
+    static addRandomTile(state, afterMove = false) {
         const { tiles, tileList } = state;
         const emptyPositions = [];
         
@@ -76,22 +72,25 @@ export class GameEngine {
             )
         );
         
+        // Reset all existing tiles' animation flags
+        const updatedTileList = tileList.map(tile => ({
+            ...tile,
+            isNew: false,
+            mergedFrom: null,
+            animationActive: false
+        }));
+        
         // Create a new tile object with unique ID for tracking animations
         const newTile = {
             id: GameEngine.nextTileId++,
             value,
             row,
             col,
-            isNew: true,  // Mark as a new tile for appearance animation
+            isNew: true,
             mergedFrom: null,
-            delayAppearance: true // Add this flag to control the appearance timing
+            animationActive: true,
+            delayAppearance: afterMove // Added flag for delayed appearance
         };
-        
-        // Clear isNew flag from any existing tiles to ensure they don't re-animate
-        const updatedTileList = tileList.map(tile => ({
-            ...tile,
-            isNew: false
-        }));
         
         // Add the new tile to the tile list
         const newTileList = [...updatedTileList, newTile];
@@ -103,16 +102,11 @@ export class GameEngine {
             ...state,
             tiles: newTiles,
             tileList: newTileList,
-            goalReached: goalReached || state.goalReached
+            goalReached: goalReached || state.goalReached,
+            lastActionTime: Date.now() // Track when the last action occurred
         };
     }
     
-    /**
-     * Move tiles in the specified direction and merge when possible
-     * @param {Object} state - Current game state
-     * @param {string} direction - Direction to move: 'up', 'down', 'left', 'right'
-     * @returns {Object} Updated game state
-     */
     static move(state, direction) {
         const { tiles, tileList, score } = state;
         let newScore = score;
@@ -201,24 +195,14 @@ export class GameEngine {
         // Check if goal has been reached
         const goalReached = this.hasReachedGoal(newTiles);
         
-        // Add a random tile to the board
+        // Add a random tile to the board with delayed appearance after movement
         return {
-            ...GameEngine.addRandomTile(newState),
+            ...GameEngine.addRandomTile(newState, true), // Pass true to indicate it follows a move
             goalReached: goalReached || state.goalReached
         };
     }
     
-    /**
-     * Process a line (row or column) for movement and merging
-     * @param {Array} line - Line of tiles to process
-     * @param {boolean} forward - Direction (true = left/up, false = right/down)
-     * @param {Array} tileList - List of tile objects
-     * @param {number} lineIndex - The row or column index being processed
-     * @param {Array} mergedTiles - 2D array to track merged tiles
-     * @param {Set} processedTiles - Set of tile IDs that have been processed
-     * @param {boolean} isRow - Whether processing a row (true) or column (false)
-     * @returns {Object} Processed line, whether it moved, and score gain
-     */
+
     static processLine(line, forward, tileList, lineIndex, mergedTiles, processedTiles, isRow = false) {
         // Create a copy of the line to process
         const originalLine = [...line];
@@ -323,11 +307,6 @@ export class GameEngine {
         return { line: newLine, moved, scoreGain };
     }
     
-    /**
-     * Check if the goal tile has been reached
-     * @param {Array} tiles - The game board
-     * @returns {boolean} Whether the goal tile has been reached
-     */
     static hasReachedGoal(tiles) {
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
@@ -338,12 +317,7 @@ export class GameEngine {
         }
         return false;
     }
-    
-    /**
-     * Check if the game is over (no possible moves)
-     * @param {Object} state - Current game state
-     * @returns {boolean} Whether the game is over
-     */
+
     static isGameOver(state) {
         const { tiles } = state;
         
@@ -377,12 +351,7 @@ export class GameEngine {
         // No empty cells and no possible merges
         return true;
     }
-    
-    /**
-     * Get possible moves from current state
-     * @param {Object} state - Current game state
-     * @returns {Array} List of valid directions
-     */
+
     static getPossibleMoves(state) {
         const directions = ['up', 'down', 'left', 'right'];
         return directions.filter(direction => {
@@ -392,12 +361,6 @@ export class GameEngine {
         });
     }
     
-    /**
-     * Compare two tile grids for equality
-     * @param {Array} tilesA - First tile grid
-     * @param {Array} tilesB - Second tile grid
-     * @returns {boolean} Whether the grids are equal
-     */
     static areTilesEqual(tilesA, tilesB) {
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
@@ -408,12 +371,7 @@ export class GameEngine {
         }
         return true;
     }
-    
-    /**
-     * Handle time attack mode tick
-     * @param {Object} state - Current game state
-     * @returns {Object} Updated game state
-     */
+
     static updateTimeAttack(state) {
         if (state.mode !== 'timeAttack' || state.gameOver) {
             return state;

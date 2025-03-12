@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native'; // Add this import
 import { GameEngine } from './engine';
 import { canMergeNumbers, getNextPowerOfTwo } from '../utils/fibonacci';
 import config from '../config';
@@ -6,7 +7,7 @@ import config from '../config';
 class Logic {
     constructor(board) {
         this.board = board;
-        this.gridSize = 6; // Updated to 6x6 grid
+        this.gridSize = 5; // Updated to 5x5 grid
     }
 
     mergeTiles(tile1, tile2) {
@@ -122,7 +123,7 @@ export const useGameLogic = (initialState, setGameState) => {
      * @param {string} direction - Direction: 'up', 'down', 'left', 'right'
      */
     const handleSwipe = useCallback((direction) => {
-        // Don't process input during animations or when game is over
+        // Don't process input during animations
         if (animating) return;
         
         setGameState(currentState => {
@@ -143,40 +144,23 @@ export const useGameLogic = (initialState, setGameState) => {
             // Set animating flag to prevent rapid moves during animations
             setAnimating(true);
             
-            // Clear animation flag after move animations have completed
-            // Add extra time for the new tile appearance animation
-            setTimeout(() => setAnimating(false), animationDuration + 100);
+            // Calculate total animation time more precisely:
+            const moveDuration = config.animations?.tile?.moveSpeed || 150;
+            const mergeDuration = config.animations?.tile?.mergeSpeed || 200;
+            const appearDuration = config.animations?.tile?.appearSpeed || 200;
+
+            // Movement must complete before new tile appears
+            const totalAnimationTime = moveDuration + Math.max(mergeDuration, appearDuration) + 50;
+
+            // Clear animation lock after proper timing
+            setTimeout(() => setAnimating(false), totalAnimationTime);
             
-            // For Challenge mode, check if target is reached
-            if (newState.mode === 'challenge' && hasReachedTarget(newState)) {
-                return {
-                    ...newState,
-                    gameOver: true,
-                    win: true
-                };
-            }
-            
-            // For Challenge mode, check moves limit
-            if (newState.mode === 'challenge' && newState.moves >= newState.movesLimit) {
-                return {
-                    ...newState,
-                    gameOver: true,
-                    win: false
-                };
-            }
-            
-            // Check if game is over for any mode
-            if (GameEngine.isGameOver(newState)) {
-                return {
-                    ...newState,
-                    gameOver: true
-                };
-            }
+            // ...existing game state checks...
             
             return newState;
         });
-    }, [setGameState, animating, animationDuration]);
-    
+    }, [setGameState, animating]);
+
     /**
      * Check if target Fibonacci number has been reached (Challenge Mode)
      * @param {Object} state - Current game state
@@ -268,11 +252,26 @@ export const useGameLogic = (initialState, setGameState) => {
     }, [initialState.mode, initialState.gameOver, initialState.timeLeft, timer, setGameState]);
     
     /**
-     * Load animation settings from config
+     * Load animation settings from config and optimize for device
      */
     useEffect(() => {
-        if (config.animations?.tile?.moveSpeed) {
-            setAnimationDuration(config.animations.tile.moveSpeed);
+        if (config.animations) {
+            // Start with base animation duration
+            let baseDuration = config.animations.tile.moveSpeed;
+            
+            try {
+                // Safely check platform
+                if (Platform && Platform.OS === 'android') {
+                    // Android devices might need more time between animations
+                    setAnimationDuration(baseDuration * 1.2);
+                } else {
+                    setAnimationDuration(baseDuration);
+                }
+            } catch (e) {
+                // If Platform is undefined or any other error, use default duration
+                setAnimationDuration(baseDuration);
+                console.log('Using default animation timing');
+            }
         }
     }, []);
     

@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 // Get the screen width for calculations
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 24, 450);
-const GRID_SIZE = 6;
+const GRID_SIZE = 5;
 const CELL_SIZE = (BOARD_SIZE - 12) / GRID_SIZE;
 const CELL_PADDING = 3;
 const TILE_SIZE = CELL_SIZE - (CELL_PADDING * 2);
@@ -19,27 +19,41 @@ const Tile = ({ tile, previousPosition }) => {
     const animatedX = useRef(new Animated.Value(tile.col * CELL_SIZE)).current;
     const animatedY = useRef(new Animated.Value(tile.row * CELL_SIZE)).current;
     
+    // Animation refs for cleanup
+    const animTimers = useRef([]);
+    
     // Handle animations when tile properties change
     useEffect(() => {
+        // Clean up any pending timers
+        animTimers.current.forEach(timer => clearTimeout(timer));
+        animTimers.current = [];
+        
         // Only animate position if this isn't the first render and there's a previous position
         if (!isFirstRender.current && previousPosition) {
             if (previousPosition.row !== tile.row || previousPosition.col !== tile.col) {
-                // First set to previous position without animation (if moving from a previous position)
+                // First set to previous position instantly
                 animatedX.setValue(previousPosition.col * CELL_SIZE);
                 animatedY.setValue(previousPosition.row * CELL_SIZE);
                 
-                // Then animate to new position
-                Animated.timing(animatedX, {
-                    toValue: tile.col * CELL_SIZE,
-                    duration: 150,
-                    useNativeDriver: true,
-                }).start();
+                // Then animate to new position with consistent timing
+                const moveAnimation = Animated.parallel([
+                    Animated.timing(animatedX, {
+                        toValue: tile.col * CELL_SIZE,
+                        duration: 150,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(animatedY, {
+                        toValue: tile.row * CELL_SIZE,
+                        duration: 150,
+                        useNativeDriver: true,
+                    })
+                ]);
                 
-                Animated.timing(animatedY, {
-                    toValue: tile.row * CELL_SIZE,
-                    duration: 150,
-                    useNativeDriver: true,
-                }).start();
+                moveAnimation.start();
+            } else {
+                // Just set the position without animation for tiles that don't move
+                animatedX.setValue(tile.col * CELL_SIZE);
+                animatedY.setValue(tile.row * CELL_SIZE);
             }
         } else {
             // For first render, just set the position without animation
@@ -48,27 +62,28 @@ const Tile = ({ tile, previousPosition }) => {
             isFirstRender.current = false;
         }
         
-        // Handle appearance animations
-        const animations = [];
-        
         // New tile appearance animation
         if (tile.isNew) {
-            // Delay the appearance animation slightly to prevent glitches
-            setTimeout(() => {
+            // Calculate proper delay based on whether this follows movement
+            const appearanceDelay = tile.delayAppearance ? 150 : 50;
+            
+            // Delay appearance animation until after position is set
+            const timer = setTimeout(() => {
                 Animated.spring(animatedValue, {
                     toValue: 1,
-                    friction: 5,
-                    tension: 100,
+                    friction: 6, // Higher friction for smoother appearance
+                    tension: 150,
                     useNativeDriver: true,
                 }).start();
-            }, 50);
+            }, appearanceDelay);
+            animTimers.current.push(timer);
         }
         
         // Merge animation (for merged tiles)
         if (tile.mergedFrom) {
             Animated.sequence([
                 Animated.timing(animatedValue, {
-                    toValue: 1.2,
+                    toValue: 1.15, // Slightly larger pop effect
                     duration: 100,
                     useNativeDriver: true,
                 }),
@@ -79,8 +94,13 @@ const Tile = ({ tile, previousPosition }) => {
                 })
             ]).start();
         }
-    }, [tile, previousPosition]);
-    
+        
+        // Cleanup function for animation timers and other resources
+        return () => {
+            animTimers.current.forEach(timer => clearTimeout(timer));
+        };
+    }, [tile, previousPosition, animatedX, animatedY, animatedValue]);
+
     // Get appropriate background color based on tile value (2048 colors)
     const getBackgroundColor = () => {
         // Color map for 2048-style game
@@ -127,7 +147,9 @@ const Tile = ({ tile, previousPosition }) => {
                         { translateX: animatedX },
                         { translateY: animatedY },
                         { scale: animatedValue }
-                    ]
+                    ],
+                    // Add z-index to control layering during animations
+                    zIndex: tile.isNew ? 1 : (tile.mergedFrom ? 2 : 0)
                 }
             ]}
         >
