@@ -18,6 +18,9 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
     const animatedValue = useRef(new Animated.Value(tile.isNew ? 0 : 1)).current;
     const animatedX = useRef(new Animated.Value(tile.col * CELL_SIZE)).current;
     const animatedY = useRef(new Animated.Value(tile.row * CELL_SIZE)).current;
+    const animatedRotation = useRef(new Animated.Value(0)).current;
+    const animatedOpacity = useRef(new Animated.Value(1)).current;
+    const flashOpacity = useRef(new Animated.Value(0)).current;
     
     // Animation refs for cleanup
     const animTimers = useRef([]);
@@ -99,27 +102,70 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
             animTimers.current.push(timer);
         }
         
-        // Merge animation (for merged tiles)
+        // Enhanced merge animation (for merged tiles)
         if (tile.mergedFrom) {
-            Animated.sequence([
-                Animated.timing(animatedValue, {
-                    toValue: 1.15, // Slightly larger pop effect
-                    duration: 100,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(animatedValue, {
-                    toValue: 1,
-                    duration: 100,
-                    useNativeDriver: true,
-                })
-            ]).start();
+            // Wait for movement to complete
+            const timer = setTimeout(() => {
+                // Parallel animations for more impact
+                Animated.parallel([
+                    // 1. Scale animation (more pronounced)
+                    Animated.sequence([
+                        Animated.timing(animatedValue, {
+                            toValue: 1.2,  // Scale up larger
+                            duration: 120,
+                            easing: Easing.out(Easing.back(1.5)), // Bounce effect
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(animatedValue, {
+                            toValue: 1,
+                            duration: 100,
+                            useNativeDriver: true,
+                        })
+                    ]),
+                    
+                    // 2. Flash/highlight effect
+                    Animated.sequence([
+                        Animated.timing(flashOpacity, {
+                            toValue: 0.7,
+                            duration: 80,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(flashOpacity, {
+                            toValue: 0,
+                            duration: 140,
+                            useNativeDriver: true,
+                        })
+                    ]),
+                    
+                    // 3. Quick rotation animation
+                    Animated.sequence([
+                        Animated.timing(animatedRotation, {
+                            toValue: 0.05, // Slight rotation (in radians)
+                            duration: 60,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(animatedRotation, {
+                            toValue: -0.05,
+                            duration: 60,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(animatedRotation, {
+                            toValue: 0,
+                            duration: 60,
+                            useNativeDriver: true,
+                        })
+                    ])
+                ]).start();
+            }, 30); // Short delay after movement
+            
+            animTimers.current.push(timer);
         }
         
         // Cleanup function for animation timers and other resources
         return () => {
             animTimers.current.forEach(timer => clearTimeout(timer));
         };
-    }, [tile, previousPosition, animatedX, animatedY, animatedValue, animationIndex, batchSize]);
+    }, [tile, previousPosition, animatedX, animatedY, animatedValue, animatedRotation, flashOpacity, animationIndex, batchSize]);
 
     // Get appropriate background color based on tile value (2048 colors)
     const getBackgroundColor = () => {
@@ -157,6 +203,12 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
         return 32;
     };
 
+    // Transform animatedRotation value to actual rotation string
+    const spin = animatedRotation.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ['-30deg', '30deg']
+    });
+
     return (
         <Animated.View 
             style={[
@@ -166,7 +218,8 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                     transform: [
                         { translateX: animatedX },
                         { translateY: animatedY },
-                        { scale: animatedValue }
+                        { scale: animatedValue },
+                        { rotate: spin }
                     ],
                     // Better z-index based on multiple factors
                     zIndex: (
@@ -179,6 +232,14 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                 }
             ]}
         >
+            {/* Flash overlay for merge effect */}
+            <Animated.View 
+                style={[
+                    styles.flashOverlay,
+                    { opacity: flashOpacity }
+                ]}
+            />
+            
             <Text style={[
                 styles.value, 
                 { 
@@ -214,6 +275,15 @@ const styles = StyleSheet.create({
     value: {
         fontWeight: 'bold',
     },
+    flashOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#ffffff',
+        borderRadius: 4,
+    }
 });
 
 export default Tile;

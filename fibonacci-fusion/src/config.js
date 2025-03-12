@@ -24,7 +24,13 @@ const config = {
         tile: {
             moveSpeed: 150, // ms
             appearSpeed: 200, // ms
-            mergeSpeed: 200 // ms
+            mergeSpeed: 200, // ms
+            mergeEffects: {
+                flash: true,
+                rotate: true,
+                scale: 1.2,
+                duration: 120
+            }
         }
     }
 };

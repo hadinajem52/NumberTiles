@@ -267,7 +267,7 @@ export class GameEngine {
                 tile.value === tilesInLine[i+1].value &&
                 !processedTiles.has(tilesInLine[i+1].id)) {
                 
-                // Create a merged tile
+                // Create a merged tile with more detailed merge info
                 const mergedValue = tile.value * 2;
                 const mergedTileRow = isRow ? lineIndex : outputIndex;
                 const mergedTileCol = isRow ? outputIndex : lineIndex;
@@ -277,7 +277,10 @@ export class GameEngine {
                     value: mergedValue,
                     row: mergedTileRow,
                     col: mergedTileCol,
-                    mergedFrom: [tile.id, tilesInLine[i+1].id]
+                    mergedFrom: [tile.id, tilesInLine[i+1].id],
+                    // Add properties to track which tiles were merged
+                    mergedFromValues: [tile.value, tilesInLine[i+1].value],
+                    justMerged: true  // Flag to indicate this is a fresh merge
                 };
                 
                 // Add to merged tiles array
