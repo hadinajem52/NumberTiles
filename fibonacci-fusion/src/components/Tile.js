@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
 
 // Get the screen width for calculations
 const { width } = Dimensions.get('window');
@@ -9,7 +9,7 @@ const CELL_SIZE = (BOARD_SIZE - 12) / GRID_SIZE;
 const CELL_PADDING = 3;
 const TILE_SIZE = CELL_SIZE - (CELL_PADDING * 2);
 
-const Tile = ({ tile, previousPosition }) => {
+const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delayStart = false }) => {
     // Ensure value is valid to prevent errors
     const tileValue = tile.value || 0;
     const isFirstRender = useRef(true);
@@ -31,25 +31,45 @@ const Tile = ({ tile, previousPosition }) => {
         // Only animate position if this isn't the first render and there's a previous position
         if (!isFirstRender.current && previousPosition) {
             if (previousPosition.row !== tile.row || previousPosition.col !== tile.col) {
+                // Calculate movement distance (helps determine animation timing)
+                const rowDistance = Math.abs(previousPosition.row - tile.row);
+                const colDistance = Math.abs(previousPosition.col - tile.col);
+                const maxDistance = Math.max(rowDistance, colDistance);
+                
                 // First set to previous position instantly
                 animatedX.setValue(previousPosition.col * CELL_SIZE);
                 animatedY.setValue(previousPosition.row * CELL_SIZE);
                 
-                // Then animate to new position with consistent timing
-                const moveAnimation = Animated.parallel([
-                    Animated.timing(animatedX, {
-                        toValue: tile.col * CELL_SIZE,
-                        duration: 150,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(animatedY, {
-                        toValue: tile.row * CELL_SIZE,
-                        duration: 150,
-                        useNativeDriver: true,
-                    })
-                ]);
+                // Small stagger for large batch movements (1-5ms between tiles)
+                const batchStagger = batchSize > 5 ? 
+                    Math.min(animationIndex * 2, 10) : 0;
                 
-                moveAnimation.start();
+                // Calculate duration based on distance moved
+                const baseDuration = 150;
+                const distanceFactor = maxDistance > 2 ? 1.2 : 1;
+                const finalDuration = baseDuration * distanceFactor;
+                
+                // Use requestAnimationFrame to avoid jank
+                const timer = setTimeout(() => {
+                    requestAnimationFrame(() => {
+                        Animated.parallel([
+                            Animated.timing(animatedX, {
+                                toValue: tile.col * CELL_SIZE,
+                                duration: finalDuration,
+                                easing: Easing.out(Easing.cubic),
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(animatedY, {
+                                toValue: tile.row * CELL_SIZE,
+                                duration: finalDuration,
+                                easing: Easing.out(Easing.cubic),
+                                useNativeDriver: true,
+                            })
+                        ]).start();
+                    });
+                }, batchStagger);
+                
+                animTimers.current.push(timer);
             } else {
                 // Just set the position without animation for tiles that don't move
                 animatedX.setValue(tile.col * CELL_SIZE);
@@ -99,7 +119,7 @@ const Tile = ({ tile, previousPosition }) => {
         return () => {
             animTimers.current.forEach(timer => clearTimeout(timer));
         };
-    }, [tile, previousPosition, animatedX, animatedY, animatedValue]);
+    }, [tile, previousPosition, animatedX, animatedY, animatedValue, animationIndex, batchSize]);
 
     // Get appropriate background color based on tile value (2048 colors)
     const getBackgroundColor = () => {
@@ -148,8 +168,14 @@ const Tile = ({ tile, previousPosition }) => {
                         { translateY: animatedY },
                         { scale: animatedValue }
                     ],
-                    // Add z-index to control layering during animations
-                    zIndex: tile.isNew ? 1 : (tile.mergedFrom ? 2 : 0)
+                    // Better z-index based on multiple factors
+                    zIndex: (
+                        (tile.isNew ? 10 : 0) + 
+                        (tile.mergedFrom ? 20 : 0) + 
+                        (previousPosition ? 
+                            Math.abs(previousPosition.row - tile.row) + 
+                            Math.abs(previousPosition.col - tile.col) : 0)
+                    )
                 }
             ]}
         >

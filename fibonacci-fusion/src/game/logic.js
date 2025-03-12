@@ -144,18 +144,24 @@ export const useGameLogic = (initialState, setGameState) => {
             // Set animating flag to prevent rapid moves during animations
             setAnimating(true);
             
-            // Calculate total animation time more precisely:
-            const moveDuration = config.animations?.tile?.moveSpeed || 150;
-            const mergeDuration = config.animations?.tile?.mergeSpeed || 200;
-            const appearDuration = config.animations?.tile?.appearSpeed || 200;
-
-            // Movement must complete before new tile appears
-            const totalAnimationTime = moveDuration + Math.max(mergeDuration, appearDuration) + 50;
-
-            // Clear animation lock after proper timing
-            setTimeout(() => setAnimating(false), totalAnimationTime);
+            // Calculate animation time based on distance moved and number of tiles
+            const movingTileCount = newState.tileList.filter(t => 
+                currentState.tileList.some(old => 
+                    old.id === t.id && 
+                    (old.row !== t.row || old.col !== t.col)
+                )
+            ).length;
             
-            // ...existing game state checks...
+            // More tiles or larger movements need more time
+            const moveDuration = (config.animations?.tile?.moveSpeed || 150) * 
+                (movingTileCount > 8 ? 1.3 : 1);
+            
+            // Add additional time for large batch movements
+            const batchAdjustment = Math.min(movingTileCount * 5, 50);
+            const totalDuration = moveDuration + batchAdjustment;
+            
+            // Clear animation lock after proper timing
+            setTimeout(() => setAnimating(false), totalDuration);
             
             return newState;
         });

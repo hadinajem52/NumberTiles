@@ -42,6 +42,9 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
         })
     ).current;
 
+    // Add this before renderTiles function
+    const prepareAnimations = useRef(false);
+
     // Render the 5x5 grid background with precise positioning
     const renderGridBackground = () => {
         const rows = [];
@@ -76,11 +79,18 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
         return rows;
     };
     
-    // Render tiles with animations
+    // Modify renderTiles to handle batched animations
     const renderTiles = () => {
         if (!tileList) return null;
         
-        return tileList.map(tile => {
+        // On first render after movement, prepare animations but don't start them yet
+        const shouldPrepare = prepareAnimations.current;
+        
+        setTimeout(() => {
+            prepareAnimations.current = false;
+        }, 20);
+        
+        return tileList.map((tile, index) => {
             // Find previous position for animation
             const previousPosition = previousPositions ? 
                 previousPositions.find(prev => prev.id === tile.id) : null;
@@ -90,6 +100,9 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
                     key={`tile-${tile.id}`}
                     tile={tile}
                     previousPosition={previousPosition}
+                    animationIndex={index}
+                    batchSize={tileList.length}
+                    delayStart={shouldPrepare}
                 />
             );
         });
