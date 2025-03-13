@@ -125,15 +125,7 @@ class Scoring {
     }
 
     getGameModeMultiplier() {
-        switch (this.gameMode) {
-            case 'timeAttack':
-                return 1.2;
-            case 'challenge':
-                return 1.5;
-            case 'classic':
-            default:
-                return 1.0;
-        }
+        return 1.0; // Only classic mode remains
     }
 
     resetScore() {
@@ -153,7 +145,7 @@ class Scoring {
     }
 
     setGameMode(mode) {
-        this.gameMode = mode;
+        this.gameMode = 'classic'; // Always classic
     }
 
     getScore() {
@@ -161,7 +153,7 @@ class Scoring {
     }
     
     getTotalScore() {
-        return Math.floor((this.score + this.bonusPoints) * this.getGameModeMultiplier());
+        return this.score + this.bonusPoints;
     }
     
     getHighScore() {
@@ -188,41 +180,6 @@ class Scoring {
             console.warn('Could not load high score from localStorage');
             return 0;
         }
-    }
-    
-    // Game mode specific methods
-    
-    startTimeAttack(duration) {
-        this.setGameMode('timeAttack');
-        this.timeRemaining = duration;
-        // Return control function that game can use to update time
-        return (timeUsed) => {
-            this.timeRemaining -= timeUsed;
-            return this.timeRemaining > 0;
-        };
-    }
-    
-    startChallengeMode(targetNumber, maxMoves) {
-        this.setGameMode('challenge');
-        this.targetNumber = targetNumber;
-        this.movesRemaining = maxMoves;
-        this.challengeComplete = false;
-        
-        // Return a function to check if target is reached
-        return {
-            useMove: () => {
-                this.movesRemaining--;
-                return this.movesRemaining;
-            },
-            isTargetReached: (highestTile) => {
-                if (highestTile >= this.targetNumber) {
-                    this.challengeComplete = true;
-                    this.bonusPoints += this.targetNumber * 2;
-                }
-                return this.challengeComplete;
-            },
-            getMovesRemaining: () => this.movesRemaining
-        };
     }
 }
 

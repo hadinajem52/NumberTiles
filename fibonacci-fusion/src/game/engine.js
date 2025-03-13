@@ -24,8 +24,7 @@ export class GameEngine {
             score: 0,
             moves: 0,
             gameOver: false,
-            mode,
-            timeLeft: mode === 'timeAttack' ? 180 : null, // 3 minutes for time attack
+            mode: 'classic', // Always classic mode
             goalReached: false,
             gridSize: GRID_SIZE,
             goalValue: GOAL_TILE
@@ -384,20 +383,5 @@ export class GameEngine {
             }
         }
         return true;
-    }
-
-    static updateTimeAttack(state) {
-        if (state.mode !== 'timeAttack' || state.gameOver) {
-            return state;
-        }
-        
-        const newTimeLeft = state.timeLeft - 1;
-        const gameOver = newTimeLeft <= 0;
-        
-        return {
-            ...state,
-            timeLeft: Math.max(0, newTimeLeft),
-            gameOver
-        };
     }
 }

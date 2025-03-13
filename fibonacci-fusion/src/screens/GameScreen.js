@@ -5,9 +5,8 @@ import ScoreBoard from '../components/ScoreBoard';
 import { GameEngine } from '../game/engine';
 import { useGameLogic } from '../game/logic';
 
-const GameScreen = ({ navigation, route }) => {
-    const gameMode = route.params?.mode || 'classic';
-    const [gameState, setGameState] = useState(GameEngine.initialize(gameMode));
+const GameScreen = ({ navigation }) => {
+    const [gameState, setGameState] = useState(GameEngine.initialize('classic'));
     const { handleSwipe, resetGame, isGameOver } = useGameLogic(gameState, setGameState);
     
     // Check for game over
@@ -27,7 +26,7 @@ const GameScreen = ({ navigation, route }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.modeText}>{gameMode.toUpperCase()} MODE</Text>
+                <Text style={styles.modeText}>CLASSIC GAME</Text>
                 <ScoreBoard score={gameState.score} />
             </View>
             

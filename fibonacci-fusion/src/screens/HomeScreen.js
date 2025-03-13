@@ -21,20 +21,6 @@ const HomeScreen = ({ navigation }) => {
                             <FontAwesome name="gamepad" size={20} color="#fff" style={styles.buttonIcon} />
                             <Text style={styles.buttonText}>Classic Mode</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={[styles.button, styles.timeAttackButton]}
-                            onPress={() => navigation.navigate('Game', { mode: 'timeAttack' })}>
-                            <FontAwesome name="clock-o" size={20} color="#fff" style={styles.buttonIcon} />
-                            <Text style={styles.buttonText}>Time Attack</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={[styles.button, styles.challengeButton]}
-                            onPress={() => navigation.navigate('Game', { mode: 'challenge' })}>
-                            <FontAwesome name="trophy" size={20} color="#fff" style={styles.buttonIcon} />
-                            <Text style={styles.buttonText}>Challenge</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
                 

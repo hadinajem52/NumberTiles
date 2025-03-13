@@ -113,8 +113,6 @@ export default Logic;
  * @returns {Object} Game logic functions
  */
 export const useGameLogic = (initialState, setGameState) => {
-    // Create a timer for Time Attack mode
-    const [timer, setTimer] = useState(null);
     const [animating, setAnimating] = useState(false);
     const [animationDuration, setAnimationDuration] = useState(config.animations?.tile?.moveSpeed || 150);
 
@@ -168,94 +166,21 @@ export const useGameLogic = (initialState, setGameState) => {
     }, [setGameState, animating]);
 
     /**
-     * Check if target Fibonacci number has been reached (Challenge Mode)
-     * @param {Object} state - Current game state
-     * @returns {boolean} Whether target has been reached
-     */
-    const hasReachedTarget = useCallback((state) => {
-        if (!state.targetNumber) return false;
-        
-        // Check all tiles for target number
-        for (let row = 0; row < state.gridSize; row++) {
-            for (let col = 0; col < state.gridSize; col++) {
-                if (state.tiles[row][col] >= state.targetNumber) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }, []);
-    
-    /**
      * Reset the game to initial state
-     * @param {string} mode - Optional: game mode to reset to
      */
-    const resetGame = useCallback((mode = null) => {
-        // Clear any existing timer
-        if (timer) {
-            clearInterval(timer);
-        }
-        
-        // Initialize with current or new mode
-        setGameState(currentState => {
-            const newMode = mode || currentState.mode;
-            let newState = GameEngine.initialize(newMode);
-            
-            // Add Challenge mode specific properties
-            if (newMode === 'challenge') {
-                // Select a target Fibonacci number based on difficulty
-                // For example: aim for 21 within 20 moves
-                newState = {
-                    ...newState,
-                    targetNumber: 21,  // Let's set 21 as target (can be adjusted)
-                    movesLimit: 20,    // 20 moves to get there
-                    win: false
-                };
-            }
-            
-            return newState;
+    const resetGame = useCallback(() => {
+        setGameState(() => {
+            return GameEngine.initialize('classic');
         });
-    }, [setGameState, timer]);
+    }, [setGameState]);
     
     /**
      * Check if the game is over
      */
     const isGameOver = useCallback((state) => {
         if (state.gameOver) return true;
-        
-        // Different end conditions based on mode
-        switch (state.mode) {
-            case 'timeAttack':
-                return state.timeLeft <= 0;
-            case 'challenge':
-                return state.moves >= state.movesLimit || hasReachedTarget(state);
-            case 'classic':
-            default:
-                return GameEngine.isGameOver(state);
-        }
-    }, [hasReachedTarget]);
-    
-    // Time Attack mode timer
-    useEffect(() => {
-        // Only start timer for Time Attack mode
-        if (initialState.mode === 'timeAttack' && !initialState.gameOver && initialState.timeLeft > 0) {
-            // Clear any existing timer
-            if (timer) clearInterval(timer);
-            
-            // Create new timer that ticks every second
-            const newTimer = setInterval(() => {
-                setGameState(currentState => {
-                    // Update time and check if game should end
-                    return GameEngine.updateTimeAttack(currentState);
-                });
-            }, 1000); // 1 second interval
-            
-            setTimer(newTimer);
-            
-            // Cleanup timer on unmount
-            return () => clearInterval(newTimer);
-        }
-    }, [initialState.mode, initialState.gameOver, initialState.timeLeft, timer, setGameState]);
+        return GameEngine.isGameOver(state);
+    }, []);
     
     /**
      * Load animation settings from config and optimize for device
@@ -281,46 +206,10 @@ export const useGameLogic = (initialState, setGameState) => {
         }
     }, []);
     
-    // Get game mode specific UI helper data
-    const getModeInfo = useCallback((state) => {
-        switch (state.mode) {
-            case 'timeAttack':
-                return {
-                    showTimer: true,
-                    timerValue: state.timeLeft,
-                    timerFormat: formatTime(state.timeLeft)
-                };
-            case 'challenge':
-                return {
-                    showTarget: true,
-                    targetNumber: state.targetNumber,
-                    showMovesLimit: true,
-                    movesLeft: state.movesLimit - state.moves,
-                    progress: (state.moves / state.movesLimit) * 100
-                };
-            case 'classic':
-            default:
-                return {
-                    showBestScore: true
-                };
-        }
-    }, []);
-    
-    /**
-     * Format seconds into MM:SS display
-     */
-    const formatTime = useCallback((seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }, []);
-    
     return {
         handleSwipe,
         resetGame,
         isGameOver,
-        getModeInfo,
-        hasReachedTarget,
         isAnimating: animating
     };
 };
