@@ -16,11 +16,12 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
     
     // Animation values
     const animatedValue = useRef(new Animated.Value(tile.isNew ? 0 : 1)).current;
-    const animatedX = useRef(new Animated.Value(tile.col * CELL_SIZE)).current;
-    const animatedY = useRef(new Animated.Value(tile.row * CELL_SIZE)).current;
+    const animatedX = useRef(new Animated.Value(tile.col * CELL_SIZE + CELL_PADDING)).current;
+    const animatedY = useRef(new Animated.Value(tile.row * CELL_SIZE + CELL_PADDING)).current;
     const animatedRotation = useRef(new Animated.Value(0)).current;
     const animatedOpacity = useRef(new Animated.Value(1)).current;
     const flashOpacity = useRef(new Animated.Value(0)).current;
+    const mergeAnimationProgress = useRef(new Animated.Value(0)).current; // Track merge animation state
     
     // Animation refs for cleanup
     const animTimers = useRef([]);
@@ -40,8 +41,8 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                 const maxDistance = Math.max(rowDistance, colDistance);
                 
                 // First set to previous position instantly
-                animatedX.setValue(previousPosition.col * CELL_SIZE);
-                animatedY.setValue(previousPosition.row * CELL_SIZE);
+                animatedX.setValue(previousPosition.col * CELL_SIZE + CELL_PADDING);
+                animatedY.setValue(previousPosition.row * CELL_SIZE + CELL_PADDING);
                 
                 // Small stagger for large batch movements (1-5ms between tiles)
                 const batchStagger = batchSize > 5 ? 
@@ -55,33 +56,146 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                 // Use requestAnimationFrame to avoid jank
                 const timer = setTimeout(() => {
                     requestAnimationFrame(() => {
-                        Animated.parallel([
-                            Animated.timing(animatedX, {
-                                toValue: tile.col * CELL_SIZE,
-                                duration: finalDuration,
-                                easing: Easing.out(Easing.cubic),
-                                useNativeDriver: true,
-                            }),
-                            Animated.timing(animatedY, {
-                                toValue: tile.row * CELL_SIZE,
-                                duration: finalDuration,
-                                easing: Easing.out(Easing.cubic),
-                                useNativeDriver: true,
-                            })
-                        ]).start();
+                        // If this tile will be merged into another tile (about to disappear)
+                        if (tile.willDisappear) {
+                            // Get target position from the properties stored in engine.js
+                            const targetRow = tile.targetRow; 
+                            const targetCol = tile.targetCol;
+                            
+                            // Calculate position values for animation
+                            const targetX = targetCol * CELL_SIZE + CELL_PADDING;
+                            const targetY = targetRow * CELL_SIZE + CELL_PADDING;
+                            
+                            // First set to current position initially if needed
+                            if (previousPosition) {
+                                animatedX.setValue(previousPosition.col * CELL_SIZE + CELL_PADDING);
+                                animatedY.setValue(previousPosition.row * CELL_SIZE + CELL_PADDING);
+                            }
+                            
+                            // Calculate animation duration based on distance
+                            const distance = Math.sqrt(
+                                Math.pow(targetCol - (previousPosition?.col || tile.col), 2) +
+                                Math.pow(targetRow - (previousPosition?.row || tile.row), 2)
+                            );
+                            
+                            // Scale duration by distance (min 200ms, max 350ms)
+                            const moveDuration = Math.min(350, Math.max(200, distance * 100));
+                            
+                            // Create a smooth sliding animation sequence
+                            Animated.sequence([
+                                // 1. Move to target location with subtle shrinking
+                                Animated.parallel([
+                                    // X position
+                                    Animated.timing(animatedX, {
+                                        toValue: targetX,
+                                        duration: moveDuration,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    }),
+                                    // Y position
+                                    Animated.timing(animatedY, {
+                                        toValue: targetY,
+                                        duration: moveDuration,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    }),
+                                    // Slight shrink as it approaches
+                                    Animated.timing(animatedValue, {
+                                        toValue: 0.85,
+                                        duration: moveDuration,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    })
+                                ]),
+                                
+                                // 2. After arrival, fade out smoothly
+                                Animated.timing(animatedOpacity, {
+                                    toValue: 0,
+                                    duration: 150, // Slightly longer fade
+                                    easing: Easing.out(Easing.cubic),
+                                    useNativeDriver: true,
+                                })
+                            ]).start();
+                        } else if (tile.mergedFrom) {
+                            // This is the resulting merged tile that appears after merger
+                            
+                            // First set position
+                            animatedX.setValue(tile.col * CELL_SIZE + CELL_PADDING);
+                            animatedY.setValue(tile.row * CELL_SIZE + CELL_PADDING);
+                            
+                            // Wait briefly for the merging tiles to arrive
+                            const timer = setTimeout(() => {
+                                // Emphasis animation for the merged result
+                                Animated.sequence([
+                                    // Start smaller and grow for impact
+                                    Animated.timing(animatedValue, {
+                                        toValue: 0.8, // Start a bit smaller
+                                        duration: 0, // Instant
+                                        useNativeDriver: true,
+                                    }),
+                                    // Pop larger than normal
+                                    Animated.spring(animatedValue, {
+                                        toValue: 1.2, // Pop effect
+                                        friction: 5,
+                                        tension: 160,
+                                        useNativeDriver: true,
+                                    }),
+                                    // Settle back to normal size
+                                    Animated.spring(animatedValue, {
+                                        toValue: 1,
+                                        friction: 5,
+                                        tension: 140,
+                                        useNativeDriver: true,
+                                    })
+                                ]).start();
+                                
+                                // Flash effect
+                                Animated.sequence([
+                                    Animated.timing(flashOpacity, {
+                                        toValue: 0.6,
+                                        duration: 100,
+                                        useNativeDriver: true,
+                                    }),
+                                    Animated.timing(flashOpacity, {
+                                        toValue: 0,
+                                        duration: 200,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    })
+                                ]).start();
+                            }, 50); // Short delay to wait for merging tiles
+                            
+                            animTimers.current.push(timer);
+                        } else {
+                            // Normal movement animation for non-merging tiles
+                            Animated.parallel([
+                                Animated.timing(animatedX, {
+                                    toValue: tile.col * CELL_SIZE + CELL_PADDING,
+                                    duration: finalDuration,
+                                    easing: Easing.out(Easing.cubic),
+                                    useNativeDriver: true,
+                                }),
+                                Animated.timing(animatedY, {
+                                    toValue: tile.row * CELL_SIZE + CELL_PADDING,
+                                    duration: finalDuration,
+                                    easing: Easing.out(Easing.cubic),
+                                    useNativeDriver: true,
+                                })
+                            ]).start();
+                        }
                     });
                 }, batchStagger);
                 
                 animTimers.current.push(timer);
             } else {
                 // Just set the position without animation for tiles that don't move
-                animatedX.setValue(tile.col * CELL_SIZE);
-                animatedY.setValue(tile.row * CELL_SIZE);
+                animatedX.setValue(tile.col * CELL_SIZE + CELL_PADDING);
+                animatedY.setValue(tile.row * CELL_SIZE + CELL_PADDING);
             }
         } else {
             // For first render, just set the position without animation
-            animatedX.setValue(tile.col * CELL_SIZE);
-            animatedY.setValue(tile.row * CELL_SIZE);
+            animatedX.setValue(tile.col * CELL_SIZE + CELL_PADDING);
+            animatedY.setValue(tile.row * CELL_SIZE + CELL_PADDING);
             isFirstRender.current = false;
         }
         
@@ -108,7 +222,7 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
             const timer = setTimeout(() => {
                 // Parallel animations for more impact
                 Animated.parallel([
-                    // 1. Scale animation (more pronounced)
+                    // 1. Scale animation with bounce effect
                     Animated.sequence([
                         Animated.timing(animatedValue, {
                             toValue: 1.2,  // Scale up larger
@@ -123,21 +237,21 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                         })
                     ]),
                     
-                    // 2. Flash/highlight effect
+                    // 2. Flash/highlight effect with increased opacity and duration
                     Animated.sequence([
                         Animated.timing(flashOpacity, {
-                            toValue: 0.7,
-                            duration: 80,
+                            toValue: 0.8, // More visible flash
+                            duration: 100, // Longer flash
                             useNativeDriver: true,
                         }),
                         Animated.timing(flashOpacity, {
                             toValue: 0,
-                            duration: 140,
+                            duration: 180, // Slower fade out
                             useNativeDriver: true,
                         })
                     ]),
                     
-                    // 3. Quick rotation animation
+                    // 3. Quick rotation animation (improved wiggle)
                     Animated.sequence([
                         Animated.timing(animatedRotation, {
                             toValue: 0.05, // Slight rotation (in radians)
@@ -150,11 +264,23 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                             useNativeDriver: true,
                         }),
                         Animated.timing(animatedRotation, {
+                            toValue: 0.03,
+                            duration: 60, 
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(animatedRotation, {
                             toValue: 0,
                             duration: 60,
                             useNativeDriver: true,
                         })
-                    ])
+                    ]),
+                    
+                    // 4. Track merge animation progress (for other effects)
+                    Animated.timing(mergeAnimationProgress, {
+                        toValue: 1,
+                        duration: 300, // Total merge animation duration
+                        useNativeDriver: true,
+                    })
                 ]).start();
             }, 30); // Short delay after movement
             
@@ -165,7 +291,8 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
         return () => {
             animTimers.current.forEach(timer => clearTimeout(timer));
         };
-    }, [tile, previousPosition, animatedX, animatedY, animatedValue, animatedRotation, flashOpacity, animationIndex, batchSize]);
+    }, [tile, previousPosition, animatedX, animatedY, animatedValue, animatedRotation, 
+        flashOpacity, animationIndex, batchSize, animatedOpacity, mergeAnimationProgress]);
 
     // Get appropriate background color based on tile value (2048 colors)
     const getBackgroundColor = () => {
@@ -208,6 +335,18 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
         inputRange: [-1, 1],
         outputRange: ['-30deg', '30deg']
     });
+    
+    // Create shadow effect that intensifies during merge
+    const shadowOpacity = mergeAnimationProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.15, 0.3]
+    });
+    
+    // Create elevation effect that increases during merge
+    const elevation = mergeAnimationProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [3, 8]
+    });
 
     return (
         <Animated.View 
@@ -221,14 +360,16 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                         { scale: animatedValue },
                         { rotate: spin }
                     ],
+                    opacity: animatedOpacity,
                     // Better z-index based on multiple factors
                     zIndex: (
-                        (tile.isNew ? 10 : 0) + 
-                        (tile.mergedFrom ? 20 : 0) + 
-                        (previousPosition ? 
-                            Math.abs(previousPosition.row - tile.row) + 
-                            Math.abs(previousPosition.col - tile.col) : 0)
-                    )
+                        (tile.isNew ? 15 : 0) + 
+                        (tile.mergedFrom ? 40 : 0) +  // Highest z-index for result tiles
+                        (tile.willDisappear ? -5 : 0) + // Lower for tiles that will disappear
+                        (tile.value || 0) // Higher value tiles appear on top
+                    ),
+                    shadowOpacity: shadowOpacity,
+                    elevation: elevation,
                 }
             ]}
         >
@@ -265,11 +406,11 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: 1,
+            height: 2,
         },
         shadowOpacity: 0.22,
         shadowRadius: 2.22,
-        // Shadow for Android
+        backfaceVisibility: 'hidden',
         elevation: 3,
     },
     value: {
@@ -285,5 +426,4 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     }
 });
-
 export default Tile;

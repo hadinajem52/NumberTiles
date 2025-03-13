@@ -30,6 +30,13 @@ const config = {
                 rotate: true,
                 scale: 1.2,
                 duration: 120
+            },
+            // Add new configuration for slide-under effect
+            slideUnderEffect: {
+                enabled: true,
+                fadeOut: true,
+                scale: 0.8,
+                duration: 100
             }
         }
     }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, PanResponder } from 'react-native';
 import Tile from './Tile';
 
@@ -14,6 +14,7 @@ const CELL_INNER_SIZE = CELL_SIZE - (CELL_MARGIN * 2); // Exact size of cells
 const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
     // Touch handling state
     const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+    const [sortedTileList, setSortedTileList] = useState([]);
     
     // Create PanResponder for swipe detection
     const panResponder = useRef(
@@ -41,6 +42,27 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
             }
         })
     ).current;
+    
+    // Sort tile list to ensure proper rendering order
+    useEffect(() => {
+        if (!tileList) return;
+        
+        // Create a copy of the tile list for sorting
+        const sorted = [...tileList].sort((a, b) => {
+            // First priority: tiles that will disappear should be rendered below
+            if (a.willDisappear && !b.willDisappear) return -1;
+            if (!a.willDisappear && b.willDisappear) return 1;
+            
+            // Second priority: freshly merged tiles should be on top
+            if (a.justMerged && !b.justMerged) return 1;
+            if (!a.justMerged && b.justMerged) return -1;
+            
+            // Final priority: higher value tiles should be on top (for consistent layering)
+            return b.value - a.value;
+        });
+        
+        setSortedTileList(sorted);
+    }, [tileList]);
 
     // Add this before renderTiles function
     const prepareAnimations = useRef(false);
@@ -79,9 +101,9 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
         return rows;
     };
     
-    // Modify renderTiles to handle batched animations
+    // Modify renderTiles to handle batched animations and use sorted tile list
     const renderTiles = () => {
-        if (!tileList) return null;
+        if (!sortedTileList.length) return null;
         
         // On first render after movement, prepare animations but don't start them yet
         const shouldPrepare = prepareAnimations.current;
@@ -90,7 +112,7 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
             prepareAnimations.current = false;
         }, 20);
         
-        return tileList.map((tile, index) => {
+        return sortedTileList.map((tile, index) => {
             // Find previous position for animation
             const previousPosition = previousPositions ? 
                 previousPositions.find(prev => prev.id === tile.id) : null;
@@ -101,7 +123,7 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
                     tile={tile}
                     previousPosition={previousPosition}
                     animationIndex={index}
-                    batchSize={tileList.length}
+                    batchSize={sortedTileList.length}
                     delayStart={shouldPrepare}
                 />
             );

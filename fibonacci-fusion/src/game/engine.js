@@ -286,6 +286,17 @@ export class GameEngine {
                 // Add to merged tiles array
                 mergedTiles[mergedTileRow][mergedTileCol] = mergedTile;
                 
+                // Mark these tiles as "will disappear" for smooth animation
+                tile.willDisappear = true;
+                tilesInLine[i+1].willDisappear = true;
+                tile.targetTileId = mergedTile.id;
+                tilesInLine[i+1].targetTileId = mergedTile.id;
+                // Add these lines to store target position
+                tile.targetRow = mergedTileRow;
+                tile.targetCol = mergedTileCol;
+                tilesInLine[i+1].targetRow = mergedTileRow;
+                tilesInLine[i+1].targetCol = mergedTileCol;
+                
                 // Mark both tiles as processed
                 processedTiles.add(tile.id);
                 processedTiles.add(tilesInLine[i+1].id);
