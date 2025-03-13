@@ -1,7 +1,8 @@
-import React from 'react';
-import { SafeAreaView, StatusBar, View, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, StatusBar, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import * as Font from 'expo-font';
 import HomeScreen from './screens/HomeScreen';
 import GameScreen from './screens/GameScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
@@ -18,16 +19,44 @@ const AppTheme = {
     border: '#d0d0d0',
     notification: '#ff4d4d',
   },
-  // Add this fonts configuration
+  // Updated fonts configuration to use Nunito fonts
   fonts: {
-    regular: 'Arial',
-    bold: 'Arial-BoldMT',
+    regular: 'Nunito-Regular',
+    medium: 'Nunito-Medium',
+    bold: 'Nunito-Bold',
   }
 };
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadFonts = async () => {
+      try {
+        await Font.loadAsync({
+          'Nunito-Regular': require('./fonts/Nunito-Regular.ttf'),
+          'Nunito-Medium': require('./fonts/Nunito-Medium.ttf'),
+          'Nunito-Bold': require('./fonts/Nunito-Bold.ttf'),
+        });
+        setFontsLoaded(true);
+      } catch (error) {
+        console.error('Error loading fonts:', error);
+      }
+    };
+    
+    loadFonts();
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#c8a165" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#c8a165" />
@@ -44,6 +73,7 @@ const App = () => {
             headerTintColor: '#fff',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontFamily: 'Nunito-Bold',
             },
             cardStyle: { backgroundColor: '#f0f0f0' }
           }}
@@ -80,8 +110,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f0f0f0',
+    fontFamily: 'Nunito-Regular', // Set default font for the app
   },
   fallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
