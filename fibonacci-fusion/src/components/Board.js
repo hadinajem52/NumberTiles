@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { View, StyleSheet, Dimensions, PanResponder } from 'react-native';
 import Tile from './Tile';
 
@@ -11,10 +11,37 @@ const CELL_SIZE = (BOARD_SIZE - 12) / GRID_SIZE;
 const CELL_MARGIN = 3;
 const CELL_INNER_SIZE = CELL_SIZE - (CELL_MARGIN * 2); // Exact size of cells
 
-const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
+const Board = React.memo(({ tiles, tileList, previousPositions, onSwipe }) => {
     // Touch handling state
     const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
-    const [sortedTileList, setSortedTileList] = useState([]);
+    const prevTileListRef = useRef([]);
+    
+    // Memoize sorted tile list to prevent unnecessary resorting
+    const sortedTileList = useMemo(() => {
+        if (!tileList) return [];
+        
+        // Skip sorting if the tile list hasn't actually changed
+        if (tileList === prevTileListRef.current) {
+            return prevTileListRef.current;
+        }
+        
+        // Create a copy of the tile list for sorting
+        const sorted = [...tileList].sort((a, b) => {
+            // First priority: tiles that will disappear should be rendered below
+            if (a.willDisappear && !b.willDisappear) return -1;
+            if (!a.willDisappear && b.willDisappear) return 1;
+            
+            // Second priority: freshly merged tiles should be on top
+            if (a.justMerged && !b.justMerged) return 1;
+            if (!a.justMerged && b.justMerged) return -1;
+            
+            // Final priority: higher value tiles should be on top (for consistent layering)
+            return b.value - a.value;
+        });
+        
+        prevTileListRef.current = sorted;
+        return sorted;
+    }, [tileList]);
     
     // Create PanResponder for swipe detection
     const panResponder = useRef(
@@ -42,33 +69,26 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
             }
         })
     ).current;
+
+    // Prepare animations flag with invalidation tracking
+    const prepareAnimations = useRef(false);
+    const animationsScheduled = useRef(false);
     
-    // Sort tile list to ensure proper rendering order
+    // Track if this is the first render after receiving new tiles
     useEffect(() => {
-        if (!tileList) return;
-        
-        // Create a copy of the tile list for sorting
-        const sorted = [...tileList].sort((a, b) => {
-            // First priority: tiles that will disappear should be rendered below
-            if (a.willDisappear && !b.willDisappear) return -1;
-            if (!a.willDisappear && b.willDisappear) return 1;
+        if (tileList && !animationsScheduled.current) {
+            prepareAnimations.current = true;
+            animationsScheduled.current = true;
             
-            // Second priority: freshly merged tiles should be on top
-            if (a.justMerged && !b.justMerged) return 1;
-            if (!a.justMerged && b.justMerged) return -1;
-            
-            // Final priority: higher value tiles should be on top (for consistent layering)
-            return b.value - a.value;
-        });
-        
-        setSortedTileList(sorted);
+            // Reset the animation scheduling flag after animations complete
+            setTimeout(() => {
+                animationsScheduled.current = false;
+            }, 300); // Duration slightly longer than animations
+        }
     }, [tileList]);
 
-    // Add this before renderTiles function
-    const prepareAnimations = useRef(false);
-
-    // Render the 5x5 grid background with precise positioning
-    const renderGridBackground = () => {
+    // Memoize the grid background so it doesn't re-render unnecessarily
+    const gridBackground = useMemo(() => {
         const rows = [];
         
         for (let row = 0; row < GRID_SIZE; row++) {
@@ -99,21 +119,20 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
         }
         
         return rows;
-    };
+    }, []);
     
-    // Modify renderTiles to handle batched animations and use sorted tile list
-    const renderTiles = () => {
+    // Optimize tile rendering with memo
+    const renderTiles = useMemo(() => {
         if (!sortedTileList.length) return null;
         
-        // On first render after movement, prepare animations but don't start them yet
         const shouldPrepare = prepareAnimations.current;
-        
-        setTimeout(() => {
-            prepareAnimations.current = false;
-        }, 20);
+        if (shouldPrepare) {
+            setTimeout(() => {
+                prepareAnimations.current = false;
+            }, 20);
+        }
         
         return sortedTileList.map((tile, index) => {
-            // Find previous position for animation
             const previousPosition = previousPositions ? 
                 previousPositions.find(prev => prev.id === tile.id) : null;
                 
@@ -128,7 +147,7 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
                 />
             );
         });
-    };
+    }, [sortedTileList, previousPositions]);
 
     return (
         <View 
@@ -136,15 +155,15 @@ const Board = ({ tiles, tileList, previousPositions, onSwipe }) => {
             {...panResponder.panHandlers}
         >
             <View style={styles.background}>
-                {renderGridBackground()}
+                {gridBackground}
             </View>
             
             <View style={styles.tilesContainer}>
-                {renderTiles()}
+                {renderTiles}
             </View>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     board: {

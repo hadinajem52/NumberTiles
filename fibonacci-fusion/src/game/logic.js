@@ -133,9 +133,10 @@ export const useGameLogic = (initialState, setGameState) => {
             // Process the move
             const newState = GameEngine.move(currentState, direction);
             
-            // If no change, return current state
+            // Do a deeper comparison to avoid unnecessary updates
             if (currentState.score === newState.score && 
-                currentState.moves === newState.moves) {
+                currentState.moves === newState.moves &&
+                JSON.stringify(currentState.tileList) === JSON.stringify(newState.tileList)) {
                 return currentState;
             }
             
@@ -150,15 +151,13 @@ export const useGameLogic = (initialState, setGameState) => {
                 )
             ).length;
             
-            // More tiles or larger movements need more time
-            const moveDuration = (config.animations?.tile?.moveSpeed || 150) * 
-                (movingTileCount > 8 ? 1.3 : 1);
+            // More efficient animation timing calculation
+            const baseDuration = config.animations?.tile?.moveSpeed || 150;
+            const scaleFactor = movingTileCount > 8 ? 1.2 : 1;
+            const batchAdjustment = Math.min(Math.floor(movingTileCount * 4), 40); 
+            const totalDuration = (baseDuration * scaleFactor) + batchAdjustment;
             
-            // Add additional time for large batch movements
-            const batchAdjustment = Math.min(movingTileCount * 5, 50);
-            const totalDuration = moveDuration + batchAdjustment;
-            
-            // Clear animation lock after proper timing
+            // Schedule animation lock removal
             setTimeout(() => setAnimating(false), totalDuration);
             
             return newState;
