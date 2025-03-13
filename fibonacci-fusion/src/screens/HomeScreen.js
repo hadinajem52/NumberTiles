@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { Typography } from '../assets/styles/Typography';
 
 const HomeScreen = ({ navigation }) => {
     return (
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 42,
-        fontWeight: 'bold',
+        fontFamily: Typography.header.fontFamily,
         color: '#c8a165',  // Golden color from GameScreen
         marginBottom: 8,
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -93,6 +94,7 @@ const styles = StyleSheet.create({
     },
     tagline: {
         fontSize: 16,
+        fontFamily: Typography.body.fontFamily,
         color: '#8d6e63',  // Brown color from GameScreen
         fontWeight: '500',
     },
@@ -109,8 +111,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     subtitle: {
-        fontSize: 22,
-        fontWeight: '600',
+        fontSize: Typography.subheader.fontSize,
+        fontFamily: Typography.subheader.fontFamily,
         marginBottom: 20,
         color: '#6d4c41',  // Dark brown from GameScreen
         textAlign: 'center',
@@ -150,12 +152,13 @@ const styles = StyleSheet.create({
     comingSoonText: {
         color: '#a1887f',
         fontSize: 11,
+        fontFamily: Typography.body.fontFamily,
         fontWeight: 'bold',
     },
     buttonText: {
         color: 'white',
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: Typography.button.fontSize,
+        fontFamily: Typography.button.fontFamily,
     },
     statsCard: {
         backgroundColor: '#f0e6d2',
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
     },
     statsTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontFamily: Typography.subheader.fontFamily,
         color: '#6d4c41',
         marginBottom: 15,
         textAlign: 'center',
@@ -185,12 +188,13 @@ const styles = StyleSheet.create({
     },
     statValue: {
         fontSize: 22,
-        fontWeight: 'bold',
+        fontFamily: Typography.header.fontFamily,
         color: '#c8a165',
         marginBottom: 5,
     },
     statLabel: {
         fontSize: 12,
+        fontFamily: Typography.body.fontFamily,
         color: '#8d6e63',
         fontWeight: '600',
         textTransform: 'uppercase',
@@ -216,7 +220,8 @@ const styles = StyleSheet.create({
     },
     menuButtonText: {
         marginLeft: 10,
-        fontSize: 16,
+        fontSize: Typography.body.fontSize,
+        fontFamily: Typography.body.fontFamily,
         color: '#6d4c41',
         fontWeight: '500',
     },

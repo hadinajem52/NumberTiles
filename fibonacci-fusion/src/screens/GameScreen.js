@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, AppState } from 'react-native';
 import Board from '../components/Board';
-import ScoreBoard from '../components/ScoreBoard';
 import { GameEngine } from '../game/engine';
 import { useGameLogic } from '../game/logic';
 import { saveGameState, loadGameState, clearGameState } from '../utils/storage';
+import { Typography, Colors, getTileTextSize } from '../assets/styles/Typography';
 
 const GameScreen = ({ navigation }) => {
     const [gameState, setGameState] = useState(GameEngine.initialize('classic'));
@@ -146,16 +146,12 @@ const GameScreen = ({ navigation }) => {
     
     // Get text color for highest tile (matching Tile.js logic)
     const getHighestTileTextColor = useMemo(() => {
-        return highestTile >= 8 ? '#ffffff' : '#776e65';
+        return highestTile >= 8 ? Colors.lightText : Colors.darkText;
     }, [highestTile]);
     
-    // Adjust font size based on value length (matching Tile.js logic)
+    // Use Typography helper function for tile text size
     const getHighestTileFontSize = useMemo(() => {
-        if (highestTile >= 10000) return 18;
-        if (highestTile >= 1000) return 20;
-        if (highestTile >= 100) return 24;
-        if (highestTile >= 10) return 28;
-        return 32;
+        return getTileTextSize(highestTile);
     }, [highestTile]);
     
     // Check for game over
@@ -263,12 +259,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     scoreContainer: {
-        backgroundColor: '#c8a165',
+        backgroundColor: Colors.primaryButton,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 10,
         alignItems: 'center',
-        shadowColor: '#8d6e63',
+        shadowColor: Colors.accentText,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
@@ -279,9 +275,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     scoreValue: {
-        fontSize: 22,
-        color: 'white',
-        fontWeight: 'bold',
+        fontSize: Typography.score.fontSize,
+        fontFamily: Typography.score.fontFamily,
+        color: Typography.score.color,
     },
     timeContainer: {
         alignItems: 'center',
@@ -294,9 +290,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     timeValue: {
-        fontSize: 20,
-        color: '#6d4c41',
+        fontSize: Typography.timeValue.fontSize,
+        fontFamily: Typography.timeValue.fontFamily,
+        color: Typography.timeValue.color,
         fontWeight: 'bold',
+        
     },
     highestTileWrapper: {
         alignItems: 'center',
@@ -304,8 +302,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     statLabel: {
-        fontSize: 12,
-        color: '#8d6e63',
+        fontSize: Typography.label.fontSize,
+        fontFamily: Typography.label.fontFamily,
+        color: Typography.label.color,
         fontWeight: '600',
         marginBottom: 4,
         textTransform: 'uppercase',
@@ -316,13 +315,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 10,
-        shadowColor: '#a1887f',
+        shadowColor: Colors.secondaryButton,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
         elevation: Platform.OS === 'android' ? 2 : 0,
     },
     highestTileText: {
+        fontFamily: Typography.tileNumber.base.fontFamily,
         fontWeight: 'bold',
     },
     boardWrapper: {
@@ -349,30 +349,30 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     button: {
-        backgroundColor: '#c8a165',
+        backgroundColor: Colors.primaryButton,
         paddingVertical: 12,
         paddingHorizontal: 25,
         borderRadius: 12,
         minWidth: 130,
         alignItems: 'center',
-        shadowColor: '#8d6e63',
+        shadowColor: Colors.accentText,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 2,
         elevation: Platform.OS === 'android' ? 3 : 0,
     },
     buttonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        color: Typography.button.color,
+        fontSize: Typography.button.fontSize,
+        fontFamily: Typography.button.fontFamily,
     },
     highScoreContainer: {
-        backgroundColor: '#a1887f',
+        backgroundColor: Colors.secondaryButton,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 10,
         alignItems: 'center',
-        shadowColor: '#8d6e63',
+        shadowColor: Colors.accentText,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
@@ -383,14 +383,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     highScoreLabel: {
-        fontSize: 12,
-        color: '#f5f5f5',
+        fontSize: Typography.label.fontSize,
+        fontFamily: Typography.label.fontFamily,
+        color: Colors.lightText,
         fontWeight: 'bold',
         marginBottom: 4,
     },
     highScoreValue: {
-        fontSize: 22,
-        color: 'white',
+        fontSize: Typography.highScore.fontSize,
+        fontFamily: Typography.highScore.fontFamily,
+        color: Typography.highScore.color,
         fontWeight: 'bold',
     },
 });

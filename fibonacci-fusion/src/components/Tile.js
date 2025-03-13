@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, memo, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
+import { Typography, Colors, getTileTextSize } from '../assets/styles/Typography';
 
 // Get the screen width for calculations
 const { width } = Dimensions.get('window');
@@ -36,11 +37,7 @@ const getTileTextColor = (value) => {
 };
 
 const getTileFontSize = (value) => {
-    if (value >= 10000) return 18;
-    if (value >= 1000) return 20;
-    if (value >= 100) return 24;
-    if (value >= 10) return 28;
-    return 32;
+    return getTileTextSize(value);
 };
 
 // Calculate position for a tile
@@ -427,7 +424,7 @@ const Tile = memo(({
                 styles.value, 
                 { 
                     color: textColor,
-                    fontSize: fontSize
+                    fontSize: fontSize,
                 }
             ]}>
                 {tileValue}
@@ -457,6 +454,7 @@ const styles = StyleSheet.create({
     },
     value: {
         fontWeight: 'bold',
+        fontFamily: Typography.tileNumber.base.fontFamily,
     },
     flashOverlay: {
         position: 'absolute',
