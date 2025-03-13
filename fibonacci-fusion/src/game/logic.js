@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { Platform } from 'react-native'; // Add this import
 import { GameEngine } from './engine';
 import { canMergeNumbers, getNextPowerOfTwo } from '../utils/fibonacci';
@@ -115,6 +115,7 @@ export default Logic;
 export const useGameLogic = (initialState, setGameState) => {
     const [animating, setAnimating] = useState(false);
     const [animationDuration, setAnimationDuration] = useState(config.animations?.tile?.moveSpeed || 150);
+    const animationsInProgress = useRef(0); // Track animations in progress
 
     /**
      * Handle directional swipe/key action
@@ -143,22 +144,42 @@ export const useGameLogic = (initialState, setGameState) => {
             // Set animating flag to prevent rapid moves during animations
             setAnimating(true);
             
-            // Calculate animation time based on distance moved and number of tiles
-            const movingTileCount = newState.tileList.filter(t => 
+            // Calculate animation stats for better performance
+            const movingTiles = newState.tileList.filter(t => 
                 currentState.tileList.some(old => 
                     old.id === t.id && 
                     (old.row !== t.row || old.col !== t.col)
                 )
-            ).length;
+            );
+            const movingTileCount = movingTiles.length;
+            const maxDistance = movingTiles.reduce((max, tile) => {
+                const oldTile = currentState.tileList.find(t => t.id === tile.id);
+                if (oldTile) {
+                    const distance = Math.sqrt(
+                        Math.pow(oldTile.row - tile.row, 2) + 
+                        Math.pow(oldTile.col - tile.col, 2)
+                    );
+                    return Math.max(max, distance);
+                }
+                return max;
+            }, 0);
             
-            // More efficient animation timing calculation
+            // Enrich animation timing calculation
             const baseDuration = config.animations?.tile?.moveSpeed || 150;
-            const scaleFactor = movingTileCount > 8 ? 1.2 : 1;
-            const batchAdjustment = Math.min(Math.floor(movingTileCount * 4), 40); 
-            const totalDuration = (baseDuration * scaleFactor) + batchAdjustment;
+            const scaleFactor = maxDistance > 3 ? 1.3 : (maxDistance > 2 ? 1.2 : 1);
+            const batchAdjustment = Math.min(Math.floor(movingTileCount * 3.5), 35);
+            const totalDuration = Math.round((baseDuration * scaleFactor) + batchAdjustment);
             
-            // Schedule animation lock removal
-            setTimeout(() => setAnimating(false), totalDuration);
+            // Add batch info to moving tiles
+            newState.animationBatch = {
+                size: movingTileCount,
+                duration: totalDuration,
+                maxDistance: maxDistance
+            };
+            
+            // Schedule animation lock removal with a small buffer
+            const unlockBuffer = 25; // ms buffer to ensure animations complete
+            setTimeout(() => setAnimating(false), totalDuration + unlockBuffer);
             
             return newState;
         });
