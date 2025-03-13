@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import Board from '../components/Board';
 import ScoreBoard from '../components/ScoreBoard';
 import { GameEngine } from '../game/engine';
@@ -194,9 +194,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        elevation: Platform.OS === 'android' ? 2 : 0,
     },
     highestTileText: {
         fontWeight: 'bold',

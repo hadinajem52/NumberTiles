@@ -82,40 +82,42 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                             const moveDuration = Math.min(350, Math.max(200, distance * 100));
                             
                             // Create a smooth sliding animation sequence
-                            Animated.sequence([
-                                // 1. Move to target location with subtle shrinking
-                                Animated.parallel([
-                                    // X position
-                                    Animated.timing(animatedX, {
-                                        toValue: targetX,
-                                        duration: moveDuration,
-                                        easing: Easing.out(Easing.cubic),
-                                        useNativeDriver: true,
-                                    }),
-                                    // Y position
-                                    Animated.timing(animatedY, {
-                                        toValue: targetY,
-                                        duration: moveDuration,
-                                        easing: Easing.out(Easing.cubic),
-                                        useNativeDriver: true,
-                                    }),
-                                    // Slight shrink as it approaches
-                                    Animated.timing(animatedValue, {
-                                        toValue: 0.85,
-                                        duration: moveDuration,
+                            requestAnimationFrame(() => {
+                                Animated.sequence([
+                                    // 1. Move to target location with subtle shrinking
+                                    Animated.parallel([
+                                        // X position
+                                        Animated.timing(animatedX, {
+                                            toValue: targetX,
+                                            duration: moveDuration,
+                                            easing: Easing.out(Easing.cubic),
+                                            useNativeDriver: true,
+                                        }),
+                                        // Y position
+                                        Animated.timing(animatedY, {
+                                            toValue: targetY,
+                                            duration: moveDuration,
+                                            easing: Easing.out(Easing.cubic),
+                                            useNativeDriver: true,
+                                        }),
+                                        // Slight shrink as it approaches
+                                        Animated.timing(animatedValue, {
+                                            toValue: 0.85,
+                                            duration: moveDuration,
+                                            easing: Easing.out(Easing.cubic),
+                                            useNativeDriver: true,
+                                        })
+                                    ]),
+                                    
+                                    // 2. After arrival, fade out smoothly
+                                    Animated.timing(animatedOpacity, {
+                                        toValue: 0,
+                                        duration: 150, // Slightly longer fade
                                         easing: Easing.out(Easing.cubic),
                                         useNativeDriver: true,
                                     })
-                                ]),
-                                
-                                // 2. After arrival, fade out smoothly
-                                Animated.timing(animatedOpacity, {
-                                    toValue: 0,
-                                    duration: 150, // Slightly longer fade
-                                    easing: Easing.out(Easing.cubic),
-                                    useNativeDriver: true,
-                                })
-                            ]).start();
+                                ]).start();
+                            });
                         } else if (tile.mergedFrom) {
                             // This is the resulting merged tile that appears after merger
                             
@@ -126,62 +128,66 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
                             // Wait briefly for the merging tiles to arrive
                             const timer = setTimeout(() => {
                                 // Emphasis animation for the merged result
-                                Animated.sequence([
-                                    // Start smaller and grow for impact
-                                    Animated.timing(animatedValue, {
-                                        toValue: 0.8, // Start a bit smaller
-                                        duration: 0, // Instant
-                                        useNativeDriver: true,
-                                    }),
-                                    // Pop larger than normal
-                                    Animated.spring(animatedValue, {
-                                        toValue: 1.2, // Pop effect
-                                        friction: 5,
-                                        tension: 160,
-                                        useNativeDriver: true,
-                                    }),
-                                    // Settle back to normal size
-                                    Animated.spring(animatedValue, {
-                                        toValue: 1,
-                                        friction: 5,
-                                        tension: 140,
-                                        useNativeDriver: true,
-                                    })
-                                ]).start();
-                                
-                                // Flash effect
-                                Animated.sequence([
-                                    Animated.timing(flashOpacity, {
-                                        toValue: 0.6,
-                                        duration: 100,
-                                        useNativeDriver: true,
-                                    }),
-                                    Animated.timing(flashOpacity, {
-                                        toValue: 0,
-                                        duration: 200,
-                                        easing: Easing.out(Easing.cubic),
-                                        useNativeDriver: true,
-                                    })
-                                ]).start();
+                                requestAnimationFrame(() => {
+                                    Animated.sequence([
+                                        // Start smaller and grow for impact
+                                        Animated.timing(animatedValue, {
+                                            toValue: 0.8, // Start a bit smaller
+                                            duration: 0, // Instant
+                                            useNativeDriver: true,
+                                        }),
+                                        // Pop larger than normal
+                                        Animated.spring(animatedValue, {
+                                            toValue: 1.2, // Pop effect
+                                            friction: 5,
+                                            tension: 160,
+                                            useNativeDriver: true,
+                                        }),
+                                        // Settle back to normal size
+                                        Animated.spring(animatedValue, {
+                                            toValue: 1,
+                                            friction: 5,
+                                            tension: 140,
+                                            useNativeDriver: true,
+                                        })
+                                    ]).start();
+                                    
+                                    // Flash effect
+                                    Animated.sequence([
+                                        Animated.timing(flashOpacity, {
+                                            toValue: 0.6,
+                                            duration: 100,
+                                            useNativeDriver: true,
+                                        }),
+                                        Animated.timing(flashOpacity, {
+                                            toValue: 0,
+                                            duration: 200,
+                                            easing: Easing.out(Easing.cubic),
+                                            useNativeDriver: true,
+                                        })
+                                    ]).start();
+                                });
                             }, 50); // Short delay to wait for merging tiles
                             
                             animTimers.current.push(timer);
                         } else {
                             // Normal movement animation for non-merging tiles
-                            Animated.parallel([
-                                Animated.timing(animatedX, {
-                                    toValue: tile.col * CELL_SIZE + CELL_PADDING,
-                                    duration: finalDuration,
-                                    easing: Easing.out(Easing.cubic),
-                                    useNativeDriver: true,
-                                }),
-                                Animated.timing(animatedY, {
-                                    toValue: tile.row * CELL_SIZE + CELL_PADDING,
-                                    duration: finalDuration,
-                                    easing: Easing.out(Easing.cubic),
-                                    useNativeDriver: true,
-                                })
-                            ]).start();
+                            requestAnimationFrame(() => {
+                                Animated.parallel([
+                                    Animated.timing(animatedX, {
+                                        toValue: tile.col * CELL_SIZE + CELL_PADDING,
+                                        duration: finalDuration,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    }),
+                                    Animated.timing(animatedY, {
+                                        toValue: tile.row * CELL_SIZE + CELL_PADDING,
+                                        duration: finalDuration,
+                                        easing: Easing.out(Easing.cubic),
+                                        useNativeDriver: true,
+                                    })
+                                ]).start();
+                            });
                         }
                     });
                 }, batchStagger);
@@ -206,12 +212,14 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
             
             // Delay appearance animation until after position is set
             const timer = setTimeout(() => {
-                Animated.spring(animatedValue, {
-                    toValue: 1,
-                    friction: 6, // Higher friction for smoother appearance
-                    tension: 150,
-                    useNativeDriver: true,
-                }).start();
+                requestAnimationFrame(() => {
+                    Animated.spring(animatedValue, {
+                        toValue: 1,
+                        friction: 6, // Higher friction for smoother appearance
+                        tension: 150,
+                        useNativeDriver: true,
+                    }).start();
+                });
             }, appearanceDelay);
             animTimers.current.push(timer);
         }
@@ -221,67 +229,69 @@ const Tile = ({ tile, previousPosition, animationIndex = 0, batchSize = 1, delay
             // Wait for movement to complete
             const timer = setTimeout(() => {
                 // Parallel animations for more impact
-                Animated.parallel([
-                    // 1. Scale animation with bounce effect
-                    Animated.sequence([
-                        Animated.timing(animatedValue, {
-                            toValue: 1.2,  // Scale up larger
-                            duration: 120,
-                            easing: Easing.out(Easing.back(1.5)), // Bounce effect
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(animatedValue, {
+                requestAnimationFrame(() => {
+                    Animated.parallel([
+                        // 1. Scale animation with bounce effect
+                        Animated.sequence([
+                            Animated.timing(animatedValue, {
+                                toValue: 1.2,  // Scale up larger
+                                duration: 120,
+                                easing: Easing.out(Easing.back(1.5)), // Bounce effect
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(animatedValue, {
+                                toValue: 1,
+                                duration: 100,
+                                useNativeDriver: true,
+                            })
+                        ]),
+                        
+                        // 2. Flash/highlight effect with increased opacity and duration
+                        Animated.sequence([
+                            Animated.timing(flashOpacity, {
+                                toValue: 0.8, // More visible flash
+                                duration: 100, // Longer flash
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(flashOpacity, {
+                                toValue: 0,
+                                duration: 180, // Slower fade out
+                                useNativeDriver: true,
+                            })
+                        ]),
+                        
+                        // 3. Quick rotation animation (improved wiggle)
+                        Animated.sequence([
+                            Animated.timing(animatedRotation, {
+                                toValue: 0.05, // Slight rotation (in radians)
+                                duration: 60,
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(animatedRotation, {
+                                toValue: -0.05,
+                                duration: 60,
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(animatedRotation, {
+                                toValue: 0.03,
+                                duration: 60, 
+                                useNativeDriver: true,
+                            }),
+                            Animated.timing(animatedRotation, {
+                                toValue: 0,
+                                duration: 60,
+                                useNativeDriver: true,
+                            })
+                        ]),
+                        
+                        // 4. Track merge animation progress (for other effects)
+                        Animated.timing(mergeAnimationProgress, {
                             toValue: 1,
-                            duration: 100,
+                            duration: 300, // Total merge animation duration
                             useNativeDriver: true,
                         })
-                    ]),
-                    
-                    // 2. Flash/highlight effect with increased opacity and duration
-                    Animated.sequence([
-                        Animated.timing(flashOpacity, {
-                            toValue: 0.8, // More visible flash
-                            duration: 100, // Longer flash
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(flashOpacity, {
-                            toValue: 0,
-                            duration: 180, // Slower fade out
-                            useNativeDriver: true,
-                        })
-                    ]),
-                    
-                    // 3. Quick rotation animation (improved wiggle)
-                    Animated.sequence([
-                        Animated.timing(animatedRotation, {
-                            toValue: 0.05, // Slight rotation (in radians)
-                            duration: 60,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(animatedRotation, {
-                            toValue: -0.05,
-                            duration: 60,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(animatedRotation, {
-                            toValue: 0.03,
-                            duration: 60, 
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(animatedRotation, {
-                            toValue: 0,
-                            duration: 60,
-                            useNativeDriver: true,
-                        })
-                    ]),
-                    
-                    // 4. Track merge animation progress (for other effects)
-                    Animated.timing(mergeAnimationProgress, {
-                        toValue: 1,
-                        duration: 300, // Total merge animation duration
-                        useNativeDriver: true,
-                    })
-                ]).start();
+                    ]).start();
+                });
             }, 30); // Short delay after movement
             
             animTimers.current.push(timer);
