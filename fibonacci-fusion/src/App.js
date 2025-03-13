@@ -30,7 +30,7 @@ const Stack = createStackNavigator();
 const App = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffa64d" />
+      <StatusBar barStyle="dark-content" backgroundColor="#c8a165" />
       <NavigationContainer
         theme={AppTheme}
         fallback={<View style={styles.fallback} />}
@@ -39,7 +39,7 @@ const App = () => {
           initialRouteName="Home"
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#ffa64d',
+              backgroundColor: '#c8a165',
             },
             headerTintColor: '#fff',
             headerTitleStyle: {
@@ -51,7 +51,7 @@ const App = () => {
           <Stack.Screen 
             name="Home" 
             component={HomeScreen} 
-            options={{ title: 'Fibonacci Fusion' }}
+            options={{ title: 'Home' }}
           />
           <Stack.Screen 
             name="Game" 
