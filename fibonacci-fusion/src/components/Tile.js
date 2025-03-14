@@ -453,8 +453,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     value: {
-        fontWeight: 'bold',
-        fontFamily: Typography.tileNumber.base.fontFamily,
+               fontFamily: Typography.tileNumber.base.fontFamily,
     },
     flashOverlay: {
         position: 'absolute',

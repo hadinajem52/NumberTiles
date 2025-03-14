@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Button from '../components/Button';
-import theme from '../assets/styles/theme';
+import { COLORS, FONTS, SPACING } from '../assets/styles/Typography';
 import { useNavigation } from '@react-navigation/native';
 
 const SettingsScreen = () => {
@@ -81,23 +81,23 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.background,
+        backgroundColor: COLORS.BACKGROUND,
     },
     title: {
-        fontSize: 24,
-        marginBottom: 20,
-        color: theme.colors.primary,
+        ...FONTS.H1,
+        marginBottom: SPACING.LARGE,
+        color: COLORS.PRIMARY,
     },
     setting: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         width: '80%',
-        marginVertical: 10,
+        marginVertical: SPACING.MEDIUM,
     },
     label: {
-        fontSize: 18,
-        color: theme.colors.text,
+        ...FONTS.BODY,
+        color: COLORS.TEXT,
     },
 });
 

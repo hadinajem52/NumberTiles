@@ -13,6 +13,7 @@ const GameScreen = ({ navigation }) => {
     const [highestTile, setHighestTile] = useState(1);
     const [appState, setAppState] = useState(AppState.currentState);
     const [highScore, setHighScore] = useState(0); // Track all-time high score
+    const [isGameEnded, setIsGameEnded] = useState(false); // New state to track if game is over
     
     // Load saved game and high score on initial mount
     useEffect(() => {
@@ -91,14 +92,16 @@ const GameScreen = ({ navigation }) => {
         }
     }, [gameState.tileList]);
     
-    // Timer effect
+    // Timer effect - stop when game is ended
     useEffect(() => {
+        if (isGameEnded) return; // Don't start timer if game is over
+
         const timer = setInterval(() => {
             setElapsedTime(prev => prev + 1);
         }, 1000);
         
         return () => clearInterval(timer);
-    }, []);
+    }, [isGameEnded]); // Add isGameEnded dependency
     
     // Format time as MM:SS
     const formatTime = (seconds) => {
@@ -114,6 +117,7 @@ const GameScreen = ({ navigation }) => {
         
         setElapsedTime(0);
         setHighestTile(1);
+        setIsGameEnded(false); // Reset game ended state
         resetGame();
         
         await clearGameState(); // Clear saved game state
@@ -157,6 +161,7 @@ const GameScreen = ({ navigation }) => {
     // Check for game over
     useEffect(() => {
         if (isGameOver(gameState)) {
+            setIsGameEnded(true); // Set game ended state to true to stop timer
             Alert.alert(
                 "Game Over",
                 `Your final score: ${gameState.score}\nHighest tile: ${highestTile}\nTime: ${formatTime(elapsedTime)}`,
@@ -293,7 +298,6 @@ const styles = StyleSheet.create({
         fontSize: Typography.timeValue.fontSize,
         fontFamily: Typography.timeValue.fontFamily,
         color: Typography.timeValue.color,
-        fontWeight: 'bold',
         
     },
     highestTileWrapper: {
@@ -323,8 +327,7 @@ const styles = StyleSheet.create({
     },
     highestTileText: {
         fontFamily: Typography.tileNumber.base.fontFamily,
-        fontWeight: 'bold',
-    },
+           },
     boardWrapper: {
         shadowColor: '#d0c0a0',
         shadowOffset: { width: 0, height: 4 },
@@ -386,15 +389,13 @@ const styles = StyleSheet.create({
         fontSize: Typography.label.fontSize,
         fontFamily: Typography.label.fontFamily,
         color: Colors.lightText,
-        fontWeight: 'bold',
-        marginBottom: 4,
+               marginBottom: 4,
     },
     highScoreValue: {
         fontSize: Typography.highScore.fontSize,
         fontFamily: Typography.highScore.fontFamily,
         color: Typography.highScore.color,
-        fontWeight: 'bold',
-    },
+           },
 });
 
 export default GameScreen;

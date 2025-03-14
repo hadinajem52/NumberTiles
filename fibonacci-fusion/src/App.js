@@ -72,8 +72,7 @@ const App = () => {
             },
             headerTintColor: '#fff',
             headerTitleStyle: {
-              fontWeight: 'bold',
-              fontFamily: 'Nunito-Bold',
+                           fontFamily: 'Nunito-Bold',
             },
             cardStyle: { backgroundColor: '#f0f0f0' }
           }}

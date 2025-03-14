@@ -153,8 +153,7 @@ const styles = StyleSheet.create({
         color: '#a1887f',
         fontSize: 11,
         fontFamily: Typography.body.fontFamily,
-        fontWeight: 'bold',
-    },
+           },
     buttonText: {
         color: 'white',
         fontSize: Typography.button.fontSize,

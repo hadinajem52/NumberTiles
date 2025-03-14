@@ -41,8 +41,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
+               marginBottom: 20,
         textAlign: 'center',
     },
     scoreItem: {
@@ -57,8 +56,7 @@ const styles = StyleSheet.create({
     },
     playerScore: {
         fontSize: 18,
-        fontWeight: 'bold',
-    },
+           },
 });
 
 export default LeaderboardScreen;
